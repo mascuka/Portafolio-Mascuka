@@ -1,0 +1,197 @@
+@import "tailwindcss";
+
+@theme {
+  --color-sistemas: #00A3FF; 
+  --color-fondo: #05070A;
+  --color-light-bg: #FAFBFC;
+}
+
+/* ============================================
+   TRANSICIONES Y ANIMACIONES
+   ============================================ */
+
+body {
+  margin: 0;
+  overflow-x: hidden;
+  transition: background-color 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+  background-color: var(--color-fondo);
+}
+
+body.light {
+  background-color: var(--color-light-bg);
+}
+
+/* Efecto de línea/ola al navegar */
+@keyframes wave-loading {
+  0% { left: -100%; width: 30%; }
+  50% { width: 60%; }
+  100% { left: 100%; width: 30%; }
+}
+
+.section-loader {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, var(--color-sistemas), transparent);
+  width: 100%;
+  z-index: 1000;
+  animation: wave-loading 0.8s ease-in-out forwards;
+}
+
+/* ============================================
+   TRANSICIONES SUAVES ENTRE SECCIONES
+   ============================================ */
+
+section {
+  position: relative;
+  scroll-margin-top: 80px;
+}
+
+/* Efecto de partículas flotantes al hacer scroll */
+section::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, 
+    transparent 0%, 
+    rgba(0, 163, 255, 0.2) 20%, 
+    rgba(0, 163, 255, 0.5) 50%, 
+    rgba(0, 163, 255, 0.2) 80%, 
+    transparent 100%
+  );
+  opacity: 0;
+  transition: opacity 0.8s ease;
+}
+
+section:hover::before {
+  opacity: 1;
+}
+
+/* Animación de fade-in para secciones */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+section > div {
+  animation: fadeInUp 0.8s ease-out;
+}
+
+/* ============================================
+   RESET Y OPTIMIZACIONES
+   ============================================ */
+
+* {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+button, a, img, div {
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+button, a {
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+  box-shadow: none !important;
+  transition: all 0.4s;
+  cursor: pointer;
+}
+
+/* ============================================
+   SCROLL SUAVE
+   ============================================ */
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* ============================================
+   BOTÓN TECH PROFESIONAL
+   ============================================ */
+
+.btn-tech {
+  position: relative;
+  background-color: #001529 !important;
+  color: white !important;
+  border: 2px solid rgba(255, 255, 255, 0.1) !important;
+  font-weight: 900;
+  overflow: hidden;
+  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.btn-tech::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, transparent 0%, rgba(0, 163, 255, 0.1) 50%, transparent 100%);
+  transform: translateX(-100%);
+  transition: transform 0.6s;
+}
+
+.btn-tech:hover::before {
+  transform: translateX(100%);
+}
+
+.btn-tech:hover {
+  background-color: transparent !important;
+  border-color: var(--color-sistemas) !important;
+  color: var(--color-sistemas) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 163, 255, 0.2) !important;
+}
+
+/* ============================================
+   SCROLLBAR
+   ============================================ */
+
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 163, 255, 0.2);
+  border-radius: 20px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 163, 255, 0.5);
+}
+
+/* ============================================
+   EFECTOS DE PARTÍCULAS AL CAMBIAR DE SECCIÓN
+   ============================================ */
+
+@keyframes particle-float {
+  0%, 100% {
+    transform: translateY(0) translateX(0);
+    opacity: 0;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.particle-effect {
+  pointer-events: none;
+  position: fixed;
+  width: 4px;
+  height: 4px;
+  background: var(--color-sistemas);
+  border-radius: 50%;
+  animation: particle-float 2s ease-out;
+}

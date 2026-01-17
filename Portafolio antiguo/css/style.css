@@ -1,0 +1,130 @@
+* {
+  margin: 0;
+  padding: 0;
+}
+body{
+  width: 100%;
+ 
+  
+}
+
+/*---------------------------------------------NAVEGADOR PRINCIPAL---------------------------------------------*/
+.nav0 {
+  padding-top: 20px;
+  padding-bottom: 20px;
+}
+
+.selector:hover{
+  text-decoration: underline;
+  border-radius: 5%;
+  transition: all, 0.3s;
+  transform: scale(1.01);
+  
+  
+  
+} 
+/*-----------------------------------------------PORTADA PRINCIPAL---------------------------------------------*/
+.img-san {
+  max-width: 400px;
+  margin: 0 auto;
+  border: none;
+
+}
+
+h1 {
+  color: rgb(13, 110, 253);
+}
+
+.subrayado{
+  background-color: rgb(13, 110, 253);
+  background-image: linear-gradient(to top, rgb(13, 110, 253), white);
+  color: white;
+}
+
+.parte-1 {
+  display: flex;
+  justify-content: space-around;
+  padding-top: 40px;
+  padding-bottom: 70px;
+}
+/*---------------------------------------------------------- CV --------------------------------------------------*/
+
+.cv{
+  padding: 30px;
+  padding-right: 485px;
+  
+}
+
+/*--------------------------------------------TITULOS Y LETRAS | FONDO AZUL-------------------------------------*/
+.zona-azul {
+  background-color: rgb(13, 110, 253);
+  padding-bottom: 70px;
+  padding-top: 10px;
+
+}
+
+.letra-subtitulo-1 {
+  color: white;
+  margin-left: 20px;
+  padding: 10px;
+  padding-top: 40px;
+  margin-bottom: 30px;
+}
+
+.letra-1 {
+  
+  margin-left: 300px;
+  margin-right: 300px;
+  padding-bottom: 40px;
+  color: white;
+}
+
+.aumento:hover{
+  transition-property: all;
+  transition-duration: 1.6s;
+  transform: scale(1.04);
+  
+  
+}
+
+/* -----------------------------------------TITULOS Y LETRAS | FONDO BLANCO---------------------------------------*/
+.letra-subtitulo-2 {
+  color: rgb(13, 110, 253);
+  margin-left: 20px;
+  padding: 10px;
+  padding-top: 40px;
+}
+
+.iconos {
+  display: flex;
+}
+
+.habilidades {
+  padding-bottom: 40px;
+}
+
+.img-i {
+  margin: 40px;
+  max-width: 125px;
+}
+
+.aumento2:hover{
+  transition-property: all;
+  transition-duration: 1.6s;
+  transform: scale(1.14);
+  
+  
+}
+
+/* -----------------------------------------           CONTACTAME            ---------------------------------------*/
+.mapa {
+  margin-bottom: 50px;
+  border: dashed 3px white;
+}
+
+/* -----------------------------------------              PIE               ---------------------------------------*/
+footer {
+  margin-bottom: 10px;
+}
+
+

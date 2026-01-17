@@ -1,0 +1,75 @@
+*{
+    margin: 0;
+    padding: 0;
+}
+/*---------------------------------------------NAVEGADOR PRINCIPAL---------------------------------------------*/
+.nav0{
+    margin: 20px;  
+}
+/*-----------------------------------------------PORTADA PRINCIPAL---------------------------------------------*/
+.img-san{
+    max-width: 300px;
+    margin: 0 auto;
+}
+
+h1{
+    color: rgb(13, 110, 253); ;
+}
+
+.parte-1{
+    display: flex;
+    justify-content: space-around;
+}
+
+/*--------------------------------------------TITULOS Y LETRAS | FONDO AZUL-------------------------------------*/
+.zona-azul{
+    background-color: rgb(13, 110, 253);   
+}
+
+.letra-subtitulo-1 {
+    color: white;
+    margin-left: 20px;
+    padding: 10px;
+    padding-top: 40px;
+    margin-bottom: 30px;
+  }
+  
+.letra-1 {
+      margin-left: 300px;
+      margin-right: 300px;
+      padding-bottom: 40px;
+      color: white;
+    }
+
+/* -----------------------------------------TITULOS Y LETRAS | FONDO BLANCO---------------------------------------*/
+  
+.letra-subtitulo-2{
+    color: rgb(13, 110, 253); 
+    margin-left: 20px;
+    padding: 10px;
+    padding-top: 40px;  
+}
+
+.iconos{
+    display: flex;
+}
+
+.habilidades{
+    padding-bottom: 40px;
+}
+
+.img-i{
+    margin: 40px;
+}
+/* -----------------------------------------           CONTACTAME            ---------------------------------------*/
+.mapa{
+    margin-bottom: 50px;
+    border: dashed 3px white;
+    
+}
+
+/* -----------------------------------------              PIE               ---------------------------------------*/
+
+footer{
+    margin-bottom: 10px;
+}
