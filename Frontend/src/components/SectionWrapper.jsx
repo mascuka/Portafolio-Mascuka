@@ -6,7 +6,7 @@ export default function SectionWrapper({ children, id }) {
   return (
     <section 
       id={id} 
-      className={`min-h-screen py-20 pt-24 relative overflow-hidden transition-colors duration-700 ${
+      className={`min-h-screen py-20 pt-20 relative overflow-hidden transition-colors duration-700 ${
         isDark ? 'bg-[#080B12]' : 'bg-[#F5F7FA]'
       }`}
     >

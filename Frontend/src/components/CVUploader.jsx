@@ -5,31 +5,42 @@ export default function CVUploader({ currentCV, onCVChange }) {
   const { isDark } = useApp();
   const [uploading, setUploading] = useState(false);
 
-  const uploadToCloudinary = async (file) => {
+  const handleFile = async (e) => {
+    const file = e.target.files[0];
+    if (!file || file.type !== 'application/pdf') {
+      alert("Por favor, selecciona un archivo PDF válido.");
+      return;
+    }
+
+    setUploading(true);
     const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
     const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
+    
     const formData = new FormData();
     formData.append('file', file);
     formData.append('upload_preset', uploadPreset);
-    formData.append('folder', 'portfolio/cv');
+    formData.append('folder', 'cv_files'); 
+    // Al usar un public_id fijo, Cloudinary sobrescribe el archivo anterior automáticamente
+    formData.append('public_id', 'cv_santimascuka'); 
 
-    const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/raw/upload`, {
-      method: 'POST',
-      body: formData
-    });
-    return await response.json();
-  };
-
-  const handleFile = async (e) => {
-    const file = e.target.files[0];
-    if (file?.type !== 'application/pdf') return;
-
-    setUploading(true);
     try {
-      const result = await uploadToCloudinary(file);
-      onCVChange(result.secure_url);
+      const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/raw/upload`, {
+        method: 'POST',
+        body: formData
+      });
+      
+      const data = await res.json();
+      
+      if (data.secure_url) {
+        // Agregamos un timestamp a la URL para que el navegador no muestre el CV viejo por error (cache)
+        const freshUrl = `${data.secure_url}?v=${new Date().getTime()}`;
+        onCVChange(freshUrl);
+        alert("¡CV actualizado correctamente! No olvides guardar los cambios.");
+      } else {
+        alert("Error al subir el archivo.");
+      }
     } catch (err) {
-      console.error(err);
+      alert("No se pudo conectar con el servidor.");
     } finally {
       setUploading(false);
     }
@@ -61,14 +72,8 @@ export default function CVUploader({ currentCV, onCVChange }) {
             Documento CV
           </h4>
           <p className="text-[10px] text-[#00A3FF] font-bold">
-            {currentCV ? 'PDF Cargado - Click para cambiar' : 'Sin archivo - Click para subir'}
+            {uploading ? 'Actualizando archivo...' : currentCV ? 'PDF Cargado - Click para reemplazar' : 'Sin archivo - Click para subir'}
           </p>
-        </div>
-
-        <div className={`p-2 transition-transform group-hover:translate-x-1 ${isDark ? 'text-white/20' : 'text-slate-400'}`}>
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-          </svg>
         </div>
       </label>
     </div>

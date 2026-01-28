@@ -68,62 +68,63 @@ export default function Experiencia({ data, onUpdate }) {
 
   return (
     <SectionWrapper id="Experiencia">
-      <div className="w-full max-w-[1800px] mx-auto px-6 md:px-12 lg:px-24 xl:px-32 relative z-10">
+      <div className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 md:px-12 lg:px-20 relative z-10">
         
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-16">
-          <div>
-            <h1 className={`text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black tracking-tighter leading-none mb-3 transition-all duration-700 ${
+        {/* HEADER CENTRADO - IGUAL QUE PROYECTOS Y HABILIDADES */}
+        <div className="flex items-center justify-center gap-4 sm:gap-6 mb-8 sm:mb-20 relative">
+          <div className="text-center">
+            <h1 className={`text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black tracking-tighter leading-none mb-3 transition-all duration-700 ${
               isDark ? 'text-white' : 'text-slate-900'
             }`}>
               {lang === 'ES' ? (data?.header?.title || 'Experiencia') : (data?.header?.titleEN || 'Experience')}
             </h1>
-            <div className={`h-[2px] w-32 bg-gradient-to-r to-transparent ${
-              isDark ? 'from-[#0078C8]' : 'from-[#0078C8]'
-            }`} />
+            <div className={`h-[2px] w-32 sm:w-40 bg-gradient-to-r from-transparent via-[#0078C8] to-transparent mx-auto`} />
           </div>
           
-          <div className="flex items-center gap-3">
-            {isAdmin && (
-              <>
-                <button 
-                  onClick={addModal.open}
-                  className={`px-6 py-3 rounded-lg text-[10px] font-bold uppercase tracking-[0.3em] transition-all duration-300 hover:-translate-y-0.5 border ${
-                    isDark 
-                      ? 'bg-[#0078C8] text-white border-[#0078C8] hover:bg-[#005A96] shadow-lg shadow-[#0078C8]/20'
-                      : 'bg-[#0078C8] text-white border-[#0078C8] hover:bg-[#005A96] shadow-lg shadow-[#0078C8]/30'
-                  }`}
-                >
-                  + Añadir
-                </button>
-                <button onClick={editHeaderModal.open} className={`p-3 rounded-xl transition-all duration-300 hover:scale-110 ${isDark ? 'bg-white/5 text-white/40 hover:bg-[#0078C8]/20 hover:text-[#0078C8]' : 'bg-slate-100 text-slate-400 hover:bg-[#0078C8]/20 hover:text-[#0078C8]'}`}>
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
-                </button>
-              </>
-            )}
-          </div>
+          {isAdmin && (
+            <div className="absolute right-0 flex items-center gap-2">
+              <button 
+                onClick={addModal.open}
+                className="px-3 sm:px-4 py-2 rounded-lg text-[8px] sm:text-[9px] font-bold uppercase tracking-wider transition-all bg-[#0078C8] text-white hover:bg-[#005A96] opacity-60 hover:opacity-100"
+              >
+                + Nuevo
+              </button>
+              <button 
+                onClick={editHeaderModal.open} 
+                className={`p-2 rounded-lg transition-all opacity-60 hover:opacity-100 ${
+                  isDark ? 'bg-white/5 hover:bg-white/10 text-white/60' : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
+                }`}
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                </svg>
+              </button>
+            </div>
+          )}
         </div>
 
+        {/* CONTENIDO */}
         <div className="space-y-0">
           {experiences.length === 0 && (
-            <div className={`text-center py-32 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
-              <p className="text-lg">No hay experiencias cargadas aún</p>
+            <div className={`text-center py-20 sm:py-32 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+              <p className="text-base sm:text-lg">No hay experiencias cargadas aún</p>
               {isAdmin && (
-                <p className="text-sm mt-2 opacity-70">Haz click en "+ Añadir" para agregar tu primera experiencia</p>
+                <p className="text-sm mt-2 opacity-70">Haz click en "+ Nuevo" para agregar tu primera experiencia</p>
               )}
             </div>
           )}
 
           {experiences.map((exp, i) => (
-            <div key={i} className={`relative group mb-12 ${i !== experiences.length - 1 ? 'pb-12' : ''}`}>
-              <div className={`rounded-2xl p-8 transition-all duration-500 border hover:-translate-y-1 ${
+            <div key={i} className={`relative group mb-8 ${i !== experiences.length - 1 ? 'pb-8' : ''}`}>
+              <div className={`rounded-2xl p-6 sm:p-8 transition-all duration-500 border hover:-translate-y-1 ${
                 isDark 
                   ? 'bg-white/[0.02] border-white/10 hover:border-[#0078C8]/30' 
                   : 'bg-white border-slate-200 hover:border-[#0078C8]/30 shadow-sm hover:shadow-lg'
               }`}>
-                <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-6">
-                  <div className="flex-1 space-y-4">
-                    <div className="flex items-start gap-4">
-                      <div className={`flex-shrink-0 w-3 h-3 mt-2 rounded-full ${
+                <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4 sm:gap-6">
+                  <div className="flex-1 space-y-3 sm:space-y-4">
+                    <div className="flex items-start gap-3 sm:gap-4">
+                      <div className={`flex-shrink-0 w-2.5 h-2.5 sm:w-3 sm:h-3 mt-1.5 sm:mt-2 rounded-full ${
                         isDark ? 'bg-[#0078C8]' : 'bg-[#0078C8]'
                       }`} style={{ 
                         boxShadow: isDark 
@@ -132,12 +133,12 @@ export default function Experiencia({ data, onUpdate }) {
                       }} />
                       
                       <div className="flex-1">
-                        <h3 className={`text-2xl md:text-3xl font-black uppercase tracking-tight mb-2 ${
+                        <h3 className={`text-xl sm:text-2xl md:text-3xl font-black uppercase tracking-tight mb-1.5 sm:mb-2 ${
                           isDark ? 'text-white' : 'text-slate-900'
                         }`}>
                           {exp.title}
                         </h3>
-                        <p className={`font-bold text-lg ${
+                        <p className={`font-bold text-base sm:text-lg ${
                           isDark ? 'text-[#0078C8]' : 'text-[#0078C8]'
                         }`}>
                           {exp.company}
@@ -145,14 +146,14 @@ export default function Experiencia({ data, onUpdate }) {
                       </div>
                     </div>
                     
-                    <div className={`leading-relaxed whitespace-pre-line pl-7 ${
+                    <div className={`leading-relaxed whitespace-pre-line pl-0 sm:pl-7 text-sm sm:text-base ${
                       isDark ? 'text-slate-400' : 'text-slate-600'
                     }`}>
                       {exp.description}
                     </div>
                   </div>
 
-                  <div className={`flex-shrink-0 px-5 py-2.5 rounded-full text-sm font-bold border ${
+                  <div className={`flex-shrink-0 px-4 sm:px-5 py-2 sm:py-2.5 rounded-full text-xs sm:text-sm font-bold border ${
                     isDark 
                       ? 'bg-white/5 text-slate-400 border-white/10' 
                       : 'bg-slate-100 text-slate-600 border-slate-200'
@@ -165,12 +166,12 @@ export default function Experiencia({ data, onUpdate }) {
                   <div className={`flex gap-4 mt-6 pt-6 border-t opacity-0 group-hover:opacity-100 transition-opacity ${
                     isDark ? 'border-white/5' : 'border-slate-200'
                   }`}>
-                    <button onClick={() => handleEdit(i)} className={`text-sm font-bold hover:scale-105 transition-transform ${
+                    <button onClick={() => handleEdit(i)} className={`text-xs sm:text-sm font-bold hover:scale-105 transition-transform ${
                       isDark ? 'text-[#0078C8]' : 'text-[#0078C8]'
                     }`}>
                       ✎ Editar
                     </button>
-                    <button onClick={() => remove(i)} className="text-red-500 text-sm font-bold hover:scale-105 transition-transform ml-4">
+                    <button onClick={() => remove(i)} className="text-red-500 text-xs sm:text-sm font-bold hover:scale-105 transition-transform ml-4">
                       ✕ Eliminar
                     </button>
                   </div>
@@ -178,7 +179,7 @@ export default function Experiencia({ data, onUpdate }) {
               </div>
 
               {i !== experiences.length - 1 && (
-                <div className={`absolute left-8 bottom-0 w-0.5 h-12 ${
+                <div className={`absolute left-6 sm:left-8 bottom-0 w-0.5 h-8 ${
                   isDark ? 'bg-gradient-to-b from-white/20 to-transparent' : 'bg-gradient-to-b from-slate-300 to-transparent'
                 }`} />
               )}
@@ -187,6 +188,7 @@ export default function Experiencia({ data, onUpdate }) {
         </div>
       </div>
 
+      {/* MODALES */}
       <Modal isOpen={editHeaderModal.isOpen} onClose={editHeaderModal.close} title="Editar Título">
         <div className="space-y-6">
           <Input
