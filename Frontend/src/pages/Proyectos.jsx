@@ -62,11 +62,15 @@ export default function Proyectos({ projects, onUpdate }) {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  
+
   const projectsList = Array.isArray(projects?.list || projects) ? (projects?.list || projects) : [];
   
-  const isMobile = windowWidth < 768;
-  const isTablet = windowWidth >= 768 && windowWidth < 1024;
-  const cardsPerRow = isMobile ? 1 : isTablet ? 2 : 5;
+const isMobile = windowWidth < 640;
+const isSmall = windowWidth >= 640 && windowWidth < 768;
+const isTablet = windowWidth >= 768 && windowWidth < 1280;
+const isMedium = windowWidth >= 1280 && windowWidth < 1536;
+const cardsPerRow = isMobile ? 1 : isSmall ? 2 : isTablet ? 3 : isMedium ? 4 : 5;
 
   // Agrupar proyectos por fila
   const getProjectsByRow = () => {
@@ -368,7 +372,7 @@ export default function Proyectos({ projects, onUpdate }) {
         {/* Header Section */}
         <div className="flex items-center justify-center gap-4 sm:gap-6 mb-8 sm:mb-20 relative">
           <div className="text-center">
-            <h1 className={`text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black tracking-tighter leading-none mb-3 transition-all duration-700 ${
+            <h1 className={`text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black tracking-tighter leading-none mb-3 transition-all duration-700 ${
               isDark ? 'text-white' : 'text-slate-900'
             }`}>
               {lang === 'ES' ? headerData.title : (headerData.titleEN || headerData.title)}
@@ -410,7 +414,7 @@ export default function Proyectos({ projects, onUpdate }) {
               
               return (
                 <RowCarousel
-                  key={rowNumber}
+                  key={`${rowNumber}-${cardsPerRow}`}
                   rowNumber={rowNumber}
                   rowTitle={headerData.rowTitles?.[rowNumber]}
                   rowTitleEN={headerData.rowTitles?.[`${rowNumber}_EN`]}

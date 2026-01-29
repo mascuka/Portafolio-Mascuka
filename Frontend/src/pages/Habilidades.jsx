@@ -531,7 +531,7 @@ export default function Habilidades({ data, onUpdate }) {
         {/* HEADER */}
         <div className="flex items-center justify-center gap-6 mb-12 md:mb-20 relative">
           <div className="text-center">
-            <h1 className={`text-3xl sm:text-4xl md:text-5xl font-black tracking-tighter leading-none mb-3 transition-all duration-700 ${
+            <h1 className={`text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black tracking-tighter leading-none mb-3 transition-all duration-700 ${
               isDark ? 'text-white' : 'text-slate-900'
             }`}>
               {lang === 'ES' ? (data?.header?.title || 'Habilidades') : (data?.header?.titleEN || 'Skills')}

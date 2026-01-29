@@ -150,7 +150,7 @@ export default function Home({ data, cvUrl, onUpdate, onUpdateCV }) {
           </div>
         </div>
 
-        <div className="hidden lg:flex flex-1 justify-center">
+        <div className="hidden 2xl:flex flex-1 justify-center">
           <div className="relative group">
             <div className="absolute inset-0 blur-[100px] opacity-20 transition-all duration-1000 bg-[#0078C8] group-hover:opacity-40" />
             <div className={`relative w-72 h-72 md:w-[460px] md:h-[460px] rounded-full overflow-hidden border-[6px] transition-all duration-700 ${isDark ? 'border-[#0078C8]/30 shadow-2xl shadow-blue-500/10' : 'border-[#0078C8]/40 shadow-2xl shadow-slate-200'}`}>
