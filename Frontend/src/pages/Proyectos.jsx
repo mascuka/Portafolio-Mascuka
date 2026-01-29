@@ -13,17 +13,16 @@ export default function Proyectos({ projects, onUpdate }) {
   const { isDark, lang, isAdmin } = useApp();
   const addModal = useModal();
   const editHeaderModal = useModal();
+  const editRowTitleModal = useModal();
   const imageViewModal = useModal();
   const { uploadImage, deleteImage, uploading } = useCloudinary();
   const { translateMultiple } = useTranslate();
   
   const [editingId, setEditingId] = useState(null);
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [isTransitioning, setIsTransitioning] = useState(false);
-  const [slideDirection, setSlideDirection] = useState(''); // 'next' o 'prev'
   const [selectedProject, setSelectedProject] = useState(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1024);
+  const [editingRowIndex, setEditingRowIndex] = useState(null);
   
   const [formData, setFormData] = useState({ 
     title: '', 
@@ -32,13 +31,20 @@ export default function Proyectos({ projects, onUpdate }) {
     imageFiles: [],
     imagePublicIds: [],
     demo: '',
+    row: 1,
     order: null 
   });
   
   const [headerData, setHeaderData] = useState({ 
     title: 'Proyectos',
     titleEN: 'Projects',
-    rows: 1
+    rows: 1,
+    rowTitles: {} // { 1: 'Título Fila 1', 2: 'Título Fila 2', ... }
+  });
+
+  const [rowTitleForm, setRowTitleForm] = useState({
+    rowIndex: 1,
+    title: ''
   });
 
   useEffect(() => {
@@ -47,11 +53,9 @@ export default function Proyectos({ projects, onUpdate }) {
     }
   }, [projects]);
 
-  // Escuchar cambios de tamaño de ventana
   useEffect(() => {
     const handleResize = () => {
       setWindowWidth(window.innerWidth);
-      setCurrentIndex(0); // Reset del índice al cambiar de tamaño
     };
 
     window.addEventListener('resize', handleResize);
@@ -60,56 +64,39 @@ export default function Proyectos({ projects, onUpdate }) {
 
   const projectsList = Array.isArray(projects?.list || projects) ? (projects?.list || projects) : [];
   
-  const sortedProjects = [...projectsList].sort((a, b) => {
-    const orderA = a.order !== null && a.order !== undefined ? a.order : Infinity;
-    const orderB = b.order !== null && b.order !== undefined ? b.order : Infinity;
-    return orderA - orderB;
-  });
-
-  const rows = headerData.rows || 1;
   const isMobile = windowWidth < 768;
   const isTablet = windowWidth >= 768 && windowWidth < 1024;
-  
   const cardsPerRow = isMobile ? 1 : isTablet ? 2 : 5;
-  const totalVisible = cardsPerRow * rows;
-  const needsCarousel = sortedProjects.length > totalVisible;
 
-  // MEJORA: Agrupar por columnas de N filas
-  const groupedProjects = [];
-  for (let i = 0; i < sortedProjects.length; i += rows) {
-    groupedProjects.push(sortedProjects.slice(i, i + rows));
-  }
-
-  // MEJORA: Duplicar grupos para infinito sin rebobinar
-  const displayGroups = needsCarousel ? [...groupedProjects, ...groupedProjects] : groupedProjects;
-
-  const handleNavigation = (direction) => {
-    if (isTransitioning || !needsCarousel) return;
+  // Agrupar proyectos por fila
+  const getProjectsByRow = () => {
+    const rowsData = {};
+    const totalRows = headerData.rows || 1;
     
-    setIsTransitioning(true);
-    // MEJORA: Mover por bloque (cantidad de columnas visibles)
-    const step = cardsPerRow;
-    const totalGroups = groupedProjects.length;
-
-    if (direction === 'next') {
-      setCurrentIndex(prev => prev + step);
-    } else {
-      setCurrentIndex(prev => (prev <= 0 ? totalGroups - step : prev - step));
+    // Inicializar todas las filas
+    for (let i = 1; i <= totalRows; i++) {
+      rowsData[i] = [];
     }
-  };
-
-  // Efecto para salto invisible del infinito
-  useEffect(() => {
-    if (!isTransitioning) return;
-    const timer = setTimeout(() => {
-      setIsTransitioning(false);
-      const totalGroups = groupedProjects.length;
-      if (currentIndex >= totalGroups) {
-        setCurrentIndex(currentIndex % totalGroups);
+    
+    // Agrupar proyectos por fila
+    projectsList.forEach(project => {
+      const projectRow = project.row || 1;
+      if (projectRow <= totalRows) {
+        rowsData[projectRow].push(project);
       }
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [currentIndex, isTransitioning, groupedProjects.length]);
+    });
+    
+    // Ordenar proyectos dentro de cada fila por el campo order
+    Object.keys(rowsData).forEach(row => {
+      rowsData[row].sort((a, b) => {
+        const orderA = a.order !== null && a.order !== undefined ? a.order : Infinity;
+        const orderB = b.order !== null && b.order !== undefined ? b.order : Infinity;
+        return orderA - orderB;
+      });
+    });
+    
+    return rowsData;
+  };
 
   const handleImageChange = (e) => {
     const files = Array.from(e.target.files);
@@ -151,13 +138,12 @@ export default function Proyectos({ projects, onUpdate }) {
     }));
   };
 
-  const getAvailableOrders = () => {
-    const usedOrders = projectsList
-      .filter(p => editingId ? p.id !== editingId : true)
-      .map(p => p.order)
-      .filter(o => o !== null && o !== undefined);
-    
-    const maxOrder = Math.max(...usedOrders, projectsList.length);
+  const getAvailableOrdersForRow = (rowNumber) => {
+    const projectsInRow = projectsList.filter(p => 
+      (p.row || 1) === rowNumber && (editingId ? p.id !== editingId : true)
+    );
+    const usedOrders = projectsInRow.map(p => p.order).filter(o => o !== null && o !== undefined);
+    const maxOrder = Math.max(...usedOrders, projectsInRow.length);
     const orders = [];
     for (let i = 1; i <= maxOrder + 1; i++) {
       orders.push(i);
@@ -165,10 +151,11 @@ export default function Proyectos({ projects, onUpdate }) {
     return orders;
   };
 
-  const getRandomUnusedOrder = () => {
-    const usedOrders = projectsList.map(p => p.order).filter(o => o !== null && o !== undefined);
-    const availableOrders = getAvailableOrders().filter(o => !usedOrders.includes(o));
-    return availableOrders[Math.floor(Math.random() * availableOrders.length)] || projectsList.length + 1;
+  const getRandomUnusedOrderForRow = (rowNumber) => {
+    const projectsInRow = projectsList.filter(p => (p.row || 1) === rowNumber);
+    const usedOrders = projectsInRow.map(p => p.order).filter(o => o !== null && o !== undefined);
+    const availableOrders = getAvailableOrdersForRow(rowNumber).filter(o => !usedOrders.includes(o));
+    return availableOrders[Math.floor(Math.random() * availableOrders.length)] || projectsInRow.length + 1;
   };
 
   const handleEdit = (project) => {
@@ -180,12 +167,14 @@ export default function Proyectos({ projects, onUpdate }) {
       imageFiles: [],
       imagePublicIds: project.imagePublicIds || (project.imagePublicId ? [project.imagePublicId] : []),
       demo: project.demo || '',
+      row: project.row || 1,
       order: project.order !== null && project.order !== undefined ? project.order : null
     });
     addModal.open();
   };
 
   const handleAdd = () => {
+    const defaultRow = 1;
     setEditingId(null);
     setFormData({ 
       title: '', 
@@ -193,8 +182,9 @@ export default function Proyectos({ projects, onUpdate }) {
       images: [],
       imageFiles: [],
       imagePublicIds: [],
-      demo: '', 
-      order: null 
+      demo: '',
+      row: defaultRow,
+      order: getRandomUnusedOrderForRow(defaultRow)
     });
     addModal.open();
   };
@@ -231,7 +221,7 @@ export default function Proyectos({ projects, onUpdate }) {
       const [tEN, dEN] = await translateMultiple([formData.title, formData.description]);
       const finalOrder = formData.order !== null && formData.order !== undefined 
         ? parseInt(formData.order)
-        : getRandomUnusedOrder();
+        : getRandomUnusedOrderForRow(formData.row);
 
       let updatedProjects;
       if (editingId) {
@@ -248,6 +238,7 @@ export default function Proyectos({ projects, onUpdate }) {
                 demo: formData.demo, 
                 titleEN: tEN, 
                 descriptionEN: dEN,
+                row: formData.row,
                 order: finalOrder
               }
             : p
@@ -264,6 +255,7 @@ export default function Proyectos({ projects, onUpdate }) {
           titleEN: tEN, 
           descriptionEN: dEN, 
           id: Date.now().toString(),
+          row: formData.row,
           order: finalOrder
         }];
       }
@@ -301,6 +293,55 @@ export default function Proyectos({ projects, onUpdate }) {
     editHeaderModal.close();
   };
 
+  const openEditRowTitle = (rowIndex) => {
+    const currentTitle = headerData.rowTitles?.[rowIndex] || '';
+    setRowTitleForm({
+      rowIndex,
+      title: currentTitle
+    });
+    setEditingRowIndex(rowIndex);
+    editRowTitleModal.open();
+  };
+
+  const handleSaveRowTitle = async () => {
+    const updatedRowTitles = {
+      ...headerData.rowTitles,
+      [rowTitleForm.rowIndex]: rowTitleForm.title
+    };
+
+    const updatedHeader = {
+      ...headerData,
+      rowTitles: updatedRowTitles
+    };
+
+    // Traducir el título de la fila
+    if (rowTitleForm.title.trim()) {
+      const [titleEN] = await translateMultiple([rowTitleForm.title]);
+      updatedHeader.rowTitles[rowTitleForm.rowIndex] = rowTitleForm.title;
+      updatedHeader.rowTitles[`${rowTitleForm.rowIndex}_EN`] = titleEN;
+    }
+
+    setHeaderData(updatedHeader);
+    await onUpdate({ list: projectsList, header: updatedHeader });
+    editRowTitleModal.close();
+  };
+
+  const handleDeleteRowTitle = async (rowIndex) => {
+    if (confirm('¿Eliminar el título de esta fila?')) {
+      const updatedRowTitles = { ...headerData.rowTitles };
+      delete updatedRowTitles[rowIndex];
+      delete updatedRowTitles[`${rowIndex}_EN`];
+
+      const updatedHeader = {
+        ...headerData,
+        rowTitles: updatedRowTitles
+      };
+
+      setHeaderData(updatedHeader);
+      await onUpdate({ list: projectsList, header: updatedHeader });
+    }
+  };
+
   const openImageViewer = (project, imageIndex = 0) => {
     setSelectedProject(project);
     setCurrentImageIndex(imageIndex);
@@ -317,6 +358,8 @@ export default function Proyectos({ projects, onUpdate }) {
       setCurrentImageIndex((prev) => (prev - 1 + total) % total);
     }
   };
+
+  const rowsData = getProjectsByRow();
 
   return (
     <SectionWrapper id="Proyectos">
@@ -360,96 +403,31 @@ export default function Proyectos({ projects, onUpdate }) {
             <p className="text-base sm:text-lg">No hay proyectos cargados aún</p>
           </div>
         ) : (
-          <div className="relative">
-            {needsCarousel && (
-              <>
-                <button 
-                  onClick={() => handleNavigation('prev')} 
-                  disabled={isTransitioning}
-                  className={`absolute top-1/2 -translate-y-1/2 z-30 w-9 h-9 sm:w-10 sm:h-10 items-center justify-center rounded-full transition-all duration-300 hover:scale-110 flex disabled:opacity-30 disabled:cursor-not-allowed ${
-                    isDark ? 'bg-[#0078C8] text-white shadow-lg shadow-[#0078C8]/30' : 'bg-[#0078C8] text-white shadow-lg'
-                  } ${isMobile ? 'left-0' : 'left-0 sm:-translate-x-4 md:-translate-x-12'}`}
-                >
-                  <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M15 19l-7-7 7-7" />
-                  </svg>
-                </button>
-                <button 
-                  onClick={() => handleNavigation('next')} 
-                  disabled={isTransitioning}
-                  className={`absolute top-1/2 -translate-y-1/2 z-30 w-9 h-9 sm:w-10 sm:h-10 items-center justify-center rounded-full transition-all duration-300 hover:scale-110 flex disabled:opacity-30 disabled:cursor-not-allowed ${
-                    isDark ? 'bg-[#0078C8] text-white shadow-lg shadow-[#0078C8]/30' : 'bg-[#0078C8] text-white shadow-lg'
-                  } ${isMobile ? 'right-0' : 'right-0 sm:translate-x-4 md:translate-x-12'}`}
-                >
-                  <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M9 5l7 7-7 7" />
-                  </svg>
-                </button>
-              </>
-            )}
-
-            <div className="overflow-hidden">
-              <div 
-                className={`flex ${isTransitioning ? 'transition-transform duration-500 ease-out' : ''}`}
-                style={{
-                  transform: `translateX(-${currentIndex * (100 / cardsPerRow)}%)`
-                }}
-              >
-                {displayGroups.map((column, colIdx) => (
-                  <div 
-                    key={colIdx}
-                    className="flex-shrink-0 flex flex-col gap-6"
-                    style={{
-                      width: `${100 / cardsPerRow}%`,
-                      paddingLeft: '0.5rem',
-                      paddingRight: '0.5rem'
-                    }}
-                  >
-                    {column.map((project) => (
-                      <div key={project.id} className="w-full flex justify-center">
-                        <div className="w-full max-w-sm lg:max-w-none">
-                          <ProjectCard 
-                            project={project}
-                            isDark={isDark}
-                            lang={lang}
-                            isAdmin={isAdmin}
-                            onEdit={() => handleEdit(project)}
-                            onDelete={() => handleDelete(project.id)}
-                            onImageClick={(imageIndex) => openImageViewer(project, imageIndex)}
-                            isMobile={isMobile}
-                          />
-                        </div>
-                      </div>
-                    ))}
-                    {/* Placeholder para evitar estiramiento si la columna no está llena */}
-                    {column.length < rows && Array.from({ length: rows - column.length }).map((_, i) => (
-                      <div key={`empty-${i}`} className="w-full flex-1 invisible" />
-                    ))}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {needsCarousel && (
-              <div className="flex justify-center items-center gap-2 mt-6 sm:mt-8">
-                {groupedProjects.map((_, idx) => (
-                  <button 
-                    key={idx} 
-                    onClick={() => {
-                      if (currentIndex !== idx && !isTransitioning) {
-                        setIsTransitioning(true);
-                        setCurrentIndex(idx);
-                      }
-                    }} 
-                    className={`h-1.5 rounded-full transition-all duration-300 ${
-                      (currentIndex % groupedProjects.length) === idx
-                        ? 'bg-[#0078C8] w-8' 
-                        : (isDark ? 'bg-white/10 w-2 hover:w-3 hover:bg-white/20' : 'bg-slate-200 w-2 hover:w-3 hover:bg-slate-300')
-                    }`} 
-                  />
-                ))}
-              </div>
-            )}
+          <div className="space-y-16">
+            {Object.keys(rowsData).sort((a, b) => parseInt(a) - parseInt(b)).map(rowIndex => {
+              const rowNumber = parseInt(rowIndex);
+              const rowProjects = rowsData[rowNumber];
+              
+              return (
+                <RowCarousel
+                  key={rowNumber}
+                  rowNumber={rowNumber}
+                  rowTitle={headerData.rowTitles?.[rowNumber]}
+                  rowTitleEN={headerData.rowTitles?.[`${rowNumber}_EN`]}
+                  projects={rowProjects}
+                  cardsPerRow={cardsPerRow}
+                  isDark={isDark}
+                  lang={lang}
+                  isAdmin={isAdmin}
+                  isMobile={isMobile}
+                  onEdit={handleEdit}
+                  onDelete={handleDelete}
+                  onImageClick={openImageViewer}
+                  onEditRowTitle={openEditRowTitle}
+                  onDeleteRowTitle={handleDeleteRowTitle}
+                />
+              );
+            })}
           </div>
         )}
       </div>
@@ -482,6 +460,20 @@ export default function Proyectos({ projects, onUpdate }) {
             </select>
           </div>
           <Button onClick={handleSaveHeader} className="w-full">Guardar</Button>
+        </div>
+      </Modal>
+
+      {/* Modal Editar Título de Fila */}
+      <Modal isOpen={editRowTitleModal.isOpen} onClose={editRowTitleModal.close} title={`Título de Fila ${rowTitleForm.rowIndex}`}>
+        <div className="space-y-4">
+          <Input 
+            label="Título de la Fila (Español)" 
+            value={rowTitleForm.title} 
+            onChange={(e) => setRowTitleForm({...rowTitleForm, title: e.target.value})}
+            placeholder="Ej: Proyectos Destacados"
+            helper="Se traducirá automáticamente al inglés. Dejar vacío para no mostrar título"
+          />
+          <Button onClick={handleSaveRowTitle} className="w-full">Guardar Título</Button>
         </div>
       </Modal>
 
@@ -529,10 +521,38 @@ export default function Proyectos({ projects, onUpdate }) {
               </div>
             )}
           </div>
+
+          <div>
+            <label className="text-[10px] font-black uppercase tracking-widest text-[#0078C8] block mb-2">
+              Fila
+            </label>
+            <select
+              value={formData.row}
+              onChange={(e) => {
+                const newRow = parseInt(e.target.value);
+                setFormData({
+                  ...formData, 
+                  row: newRow,
+                  order: getRandomUnusedOrderForRow(newRow)
+                });
+              }}
+              className={`w-full px-4 py-2.5 rounded-xl border-2 transition-all text-sm ${
+                isDark
+                  ? 'bg-slate-800/50 border-slate-700 text-white focus:border-[#0078C8]'
+                  : 'bg-white border-slate-200 text-slate-900 focus:border-[#0078C8]'
+              }`}
+            >
+              {Array.from({ length: headerData.rows || 1 }, (_, i) => i + 1).map(row => (
+                <option key={row} value={row}>
+                  Fila {row}
+                </option>
+              ))}
+            </select>
+          </div>
           
           <div>
             <label className="text-[10px] font-black uppercase tracking-widest text-[#0078C8] block mb-2">
-              Posición en el Carrusel
+              Posición en la Fila
             </label>
             <select
               value={formData.order || ''}
@@ -544,14 +564,14 @@ export default function Proyectos({ projects, onUpdate }) {
               }`}
             >
               <option value="">Seleccionar posición...</option>
-              {getAvailableOrders().map(order => (
+              {getAvailableOrdersForRow(formData.row).map(order => (
                 <option key={order} value={order}>
                   Posición {order} {formData.order === order ? '(actual)' : ''}
                 </option>
               ))}
             </select>
           </div>
-          
+
           <Input label="URL del Demo" value={formData.demo} onChange={(e) => setFormData({...formData, demo: e.target.value})} placeholder="https://..." />
           <Button onClick={handleSave} disabled={uploading} className="w-full mt-6">
             {uploading ? 'GUARDANDO...' : 'GUARDAR PROYECTO'}
@@ -619,6 +639,311 @@ export default function Proyectos({ projects, onUpdate }) {
   );
 }
 
+// Componente de Carrusel por Fila
+function RowCarousel({ 
+  rowNumber, 
+  rowTitle, 
+  rowTitleEN, 
+  projects, 
+  cardsPerRow, 
+  isDark, 
+  lang, 
+  isAdmin, 
+  isMobile,
+  onEdit, 
+  onDelete, 
+  onImageClick,
+  onEditRowTitle,
+  onDeleteRowTitle
+}) {
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const [virtualIndex, setVirtualIndex] = useState(0); // Índice virtual que siempre crece/decrece
+
+  const sortedProjects = [...projects].sort((a, b) => {
+    const orderA = a.order !== null && a.order !== undefined ? a.order : Infinity;
+    const orderB = b.order !== null && b.order !== undefined ? b.order : Infinity;
+    return orderA - orderB;
+  });
+
+  const rows = 1;
+  const totalVisible = cardsPerRow * rows;
+  const needsCarousel = sortedProjects.length > totalVisible;
+
+  // Agrupar por columnas
+  const groupedProjects = [];
+  for (let i = 0; i < sortedProjects.length; i += rows) {
+    groupedProjects.push(sortedProjects.slice(i, i + rows));
+  }
+
+  // Precalcular todas las posiciones válidas del carrusel
+  const getValidPositions = () => {
+    const positions = [];
+    const total = groupedProjects.length;
+    
+    let pos = 0;
+    while (pos + cardsPerRow <= total) {
+      positions.push(pos);
+      pos += cardsPerRow;
+    }
+    
+    // Si quedan cards al final, agregar una posición que muestre las últimas cardsPerRow
+    if (pos < total) {
+      positions.push(total - cardsPerRow);
+    }
+    
+    return positions;
+  };
+  
+  const validPositions = getValidPositions();
+  
+  // Triplicar grupos para buffer infinito
+  const displayGroups = needsCarousel 
+    ? [...groupedProjects, ...groupedProjects, ...groupedProjects] 
+    : groupedProjects;
+
+  // Inicializar en el medio del buffer triplicado
+  useEffect(() => {
+    if (needsCarousel && virtualIndex === 0) {
+      setVirtualIndex(groupedProjects.length);
+      setCurrentIndex(validPositions[0] + groupedProjects.length);
+    }
+  }, []);
+
+  // Resetear carrusel cuando cambia el número de cards por fila (resize)
+  useEffect(() => {
+    if (needsCarousel) {
+      setVirtualIndex(groupedProjects.length);
+      setCurrentIndex(validPositions[0] + groupedProjects.length);
+      setIsTransitioning(false);
+    }
+  }, [cardsPerRow]);
+
+
+  const handleNavigation = (direction) => {
+    if (isTransitioning || !needsCarousel) return;
+    
+    setIsTransitioning(true);
+    
+    // Calcular la posición actual en el ciclo de validPositions
+    const currentRealIndex = currentIndex % groupedProjects.length;
+    const currentPosIndex = validPositions.findIndex(pos => pos === currentRealIndex);
+
+    if (direction === 'next') {
+      // Siguiente posición en el ciclo
+      const nextPosIndex = (currentPosIndex + 1) % validPositions.length;
+      const nextRealPos = validPositions[nextPosIndex];
+      
+      let newIndex;
+      // Si volvemos al inicio del ciclo, avanzamos al siguiente set triplicado
+      if (nextPosIndex === 0) {
+        const currentSet = Math.floor(currentIndex / groupedProjects.length);
+        newIndex = (currentSet + 1) * groupedProjects.length + nextRealPos;
+      } else {
+        const currentSet = Math.floor(currentIndex / groupedProjects.length);
+        newIndex = currentSet * groupedProjects.length + nextRealPos;
+      }
+      
+      setCurrentIndex(newIndex);
+      setVirtualIndex(prev => prev + 1);
+      
+      setTimeout(() => {
+        setIsTransitioning(false);
+        
+        // Si estamos en el último set triplicado, saltar al del medio sin animación
+        if (newIndex >= groupedProjects.length * 2) {
+          setTimeout(() => {
+            const pos = newIndex % groupedProjects.length;
+            setCurrentIndex(groupedProjects.length + pos);
+          }, 50);
+        }
+      }, 500);
+      
+    } else {
+      // Posición anterior en el ciclo
+      const prevPosIndex = (currentPosIndex - 1 + validPositions.length) % validPositions.length;
+      const prevRealPos = validPositions[prevPosIndex];
+      
+      let newIndex;
+      // Si volvemos al final del ciclo, retrocedemos al set anterior
+      if (prevPosIndex === validPositions.length - 1) {
+        const currentSet = Math.floor(currentIndex / groupedProjects.length);
+        newIndex = (currentSet - 1) * groupedProjects.length + prevRealPos;
+      } else {
+        const currentSet = Math.floor(currentIndex / groupedProjects.length);
+        newIndex = currentSet * groupedProjects.length + prevRealPos;
+      }
+      
+      setCurrentIndex(newIndex);
+      setVirtualIndex(prev => prev - 1);
+      
+      setTimeout(() => {
+        setIsTransitioning(false);
+        
+        // Si estamos en el primer set triplicado, saltar al del medio sin animación
+        if (newIndex < groupedProjects.length) {
+          setTimeout(() => {
+            const pos = newIndex % groupedProjects.length;
+            setCurrentIndex(groupedProjects.length + pos);
+          }, 50);
+        }
+      }, 500);
+    }
+  };
+
+  const displayTitle = lang === 'ES' ? rowTitle : (rowTitleEN || rowTitle);
+  const hasTitle = displayTitle && displayTitle.trim() !== '';
+
+  return (
+    <div className="mb-8">
+      {/* Título de la fila */}
+      {hasTitle && (
+        <div className="flex items-center justify-between mb-6 px-2">
+          <h2 className={`text-xl sm:text-2xl md:text-3xl font-black ${isDark ? 'text-white' : 'text-slate-900'}`}>
+            {displayTitle}
+          </h2>
+          {isAdmin && (
+            <div className="flex gap-2">
+              <button
+                onClick={() => onEditRowTitle(rowNumber)}
+                className={`p-2 rounded-lg transition-all opacity-60 hover:opacity-100 ${
+                  isDark ? 'bg-white/5 hover:bg-white/10 text-white/60' : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
+                }`}
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                </svg>
+              </button>
+              <button
+                onClick={() => onDeleteRowTitle(rowNumber)}
+                className={`p-2 rounded-lg transition-all opacity-60 hover:opacity-100 ${
+                  isDark ? 'bg-red-500/10 hover:bg-red-500/20 text-red-400' : 'bg-red-50 hover:bg-red-100 text-red-500'
+                }`}
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {!hasTitle && isAdmin && (
+        <div className="mb-6 px-2">
+          <button
+            onClick={() => onEditRowTitle(rowNumber)}
+            className={`text-sm px-4 py-2 rounded-lg border-2 border-dashed transition-all opacity-60 hover:opacity-100 ${
+              isDark 
+                ? 'border-white/10 text-slate-500 hover:border-[#0078C8] hover:text-[#0078C8]'
+                : 'border-slate-300 text-slate-400 hover:border-[#0078C8] hover:text-[#0078C8]'
+            }`}
+          >
+            + Añadir título a esta fila
+          </button>
+        </div>
+      )}
+
+      {/* Carrusel */}
+      {projects.length > 0 ? (
+        <div className="relative">
+          {needsCarousel && (
+            <>
+              <button 
+                onClick={() => handleNavigation('prev')} 
+                disabled={isTransitioning}
+                className={`absolute top-1/2 -translate-y-1/2 z-30 w-9 h-9 sm:w-10 sm:h-10 items-center justify-center rounded-full transition-all duration-300 hover:scale-110 flex disabled:opacity-30 disabled:cursor-not-allowed ${
+                  isDark ? 'bg-[#0078C8] text-white shadow-lg shadow-[#0078C8]/30' : 'bg-[#0078C8] text-white shadow-lg'
+                } ${isMobile ? 'left-0' : 'left-0 sm:-translate-x-4 md:-translate-x-12'}`}
+              >
+                <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+              <button 
+                onClick={() => handleNavigation('next')} 
+                disabled={isTransitioning}
+                className={`absolute top-1/2 -translate-y-1/2 z-30 w-9 h-9 sm:w-10 sm:h-10 items-center justify-center rounded-full transition-all duration-300 hover:scale-110 flex disabled:opacity-30 disabled:cursor-not-allowed ${
+                  isDark ? 'bg-[#0078C8] text-white shadow-lg shadow-[#0078C8]/30' : 'bg-[#0078C8] text-white shadow-lg'
+                } ${isMobile ? 'right-0' : 'right-0 sm:translate-x-4 md:translate-x-12'}`}
+              >
+                <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+            </>
+          )}
+
+          <div className="overflow-hidden">
+            <div 
+              className={`flex ${isTransitioning ? 'transition-transform duration-500 ease-out' : ''}`}
+              style={{
+                transform: `translateX(-${currentIndex * (100 / cardsPerRow)}%)`
+              }}
+            >
+              {displayGroups.map((column, colIdx) => (
+                <div 
+                  key={colIdx}
+                  className="flex-shrink-0 flex flex-col gap-6"
+                  style={{
+                    width: `${100 / cardsPerRow}%`,
+                    paddingLeft: '0.5rem',
+                    paddingRight: '0.5rem'
+                  }}
+                >
+                  {column.map((project) => (
+                    <div key={project.id} className="w-full flex justify-center">
+                      <div className="w-full max-w-sm lg:max-w-none">
+                        <ProjectCard 
+                          project={project}
+                          isDark={isDark}
+                          lang={lang}
+                          isAdmin={isAdmin}
+                          onEdit={() => onEdit(project)}
+                          onDelete={() => onDelete(project.id)}
+                          onImageClick={(imageIndex) => onImageClick(project, imageIndex)}
+                          isMobile={isMobile}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {needsCarousel && (
+            <div className="flex justify-center items-center gap-2 mt-6 sm:mt-8">
+              {groupedProjects.map((_, idx) => (
+                <button 
+                  key={idx} 
+                  onClick={() => {
+                    if (currentIndex !== idx && !isTransitioning) {
+                      setIsTransitioning(true);
+                      setCurrentIndex(idx);
+                      setTimeout(() => setIsTransitioning(false), 500);
+                    }
+                  }} 
+                  className={`h-1.5 rounded-full transition-all duration-300 ${
+                    currentIndex === idx
+                      ? 'bg-[#0078C8] w-8' 
+                      : (isDark ? 'bg-white/10 w-2 hover:w-3 hover:bg-white/20' : 'bg-slate-200 w-2 hover:w-3 hover:bg-slate-300')
+                  }`} 
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className={`text-center py-12 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+          No hay proyectos en esta fila
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Componente ProjectCard - SIN CAMBIOS
 function ProjectCard({ project, isDark, lang, isAdmin, onEdit, onDelete, onImageClick, isMobile = false }) {
   const [currentImgIndex, setCurrentImgIndex] = useState(0);
   const images = project.images && project.images.length > 0 ? project.images : [project.image];
@@ -635,14 +960,10 @@ function ProjectCard({ project, isDark, lang, isAdmin, onEdit, onDelete, onImage
   };
 
   return (
-    <div className="group relative h-full max-h-[540px] flex flex-col">
-      <div className={`absolute inset-0 blur-[80px] opacity-0 group-hover:opacity-20 transition-all duration-1000 ${
-        isDark ? 'bg-[#0078C8]' : 'bg-[#0078C8]/50'
-      }`} />
-      
+    <div className="group relative h-full max-h-[480px] sm:max-h-[540px] flex flex-col">
       <div className={`relative h-full flex flex-col rounded-3xl border overflow-hidden transition-all duration-700 ${
         isDark 
-          ? 'bg-[#0F172A]/40 backdrop-blur-sm border-white/5 group-hover:border-[#0078C8]/40 shadow-2xl shadow-black/50' 
+          ? 'bg-[#0F172A]/40 border-white/5 group-hover:border-[#0078C8]/40 shadow-2xl shadow-black/50' 
           : 'bg-white border-slate-200 shadow-xl group-hover:border-[#0078C8]/40'
       }`}>
         
@@ -671,15 +992,15 @@ function ProjectCard({ project, isDark, lang, isAdmin, onEdit, onDelete, onImage
           )}
         </div>
 
-        <div className="p-3 sm:p-4 md:p-5 flex flex-col flex-1 min-h-[300px]">
-          <h4 className={`text-base sm:text-lg md:text-xl font-black tracking-tight mb-1.5 sm:mb-2 leading-tight text-center transition-colors duration-300 line-clamp-2 flex-shrink-0 ${
+        <div className="p-4 sm:p-4 md:p-5 flex flex-col flex-1 min-h-[260px] sm:min-h-[300px]">
+          <h4 className={`text-lg sm:text-lg md:text-xl font-black tracking-tight mb-2 sm:mb-2 leading-tight text-center transition-colors duration-300 line-clamp-2 flex-shrink-0 ${
             isDark ? 'text-white' : 'text-slate-900'
           }`}>
             {lang === 'ES' ? project.title : (project.titleEN || project.title)}
           </h4>
           
           <div className="flex-1 min-h-0 mb-3 sm:mb-4 overflow-hidden">
-            <p className={`text-xs sm:text-sm leading-relaxed line-clamp-8 text-center transition-colors duration-300 ${
+            <p className={`text-sm sm:text-sm leading-relaxed line-clamp-6 sm:line-clamp-8 text-center transition-colors duration-300 ${
               isDark ? 'text-slate-400' : 'text-slate-600'
             }`}>
               {lang === 'ES' ? project.description : (project.descriptionEN || project.description)}
@@ -687,7 +1008,7 @@ function ProjectCard({ project, isDark, lang, isAdmin, onEdit, onDelete, onImage
           </div>
 
           <div className="flex-shrink-0 flex items-center gap-2">
-            <a href={project.demo} target="_blank" rel="noopener noreferrer" className="flex-1 py-2 sm:py-2.5 px-3 rounded-xl font-black uppercase tracking-[0.15em] text-[8px] sm:text-[9px] transition-all duration-300 flex items-center justify-center gap-1.5 sm:gap-2 bg-[#0078C8] text-white hover:bg-[#005A96] shadow-lg shadow-[#0078C8]/20">
+            <a href={project.demo} target="_blank" rel="noopener noreferrer" className="flex-1 py-2.5 sm:py-2.5 px-3 rounded-xl font-black uppercase tracking-[0.15em] text-[9px] sm:text-[9px] transition-all duration-300 flex items-center justify-center gap-1.5 sm:gap-2 bg-[#0078C8] text-white hover:bg-[#005A96] shadow-lg shadow-[#0078C8]/20">
               <span className="hidden sm:inline">{lang === 'ES' ? 'Ver Web' : 'View Site'}</span>
               <span className="sm:hidden">{lang === 'ES' ? 'Ver' : 'View'}</span>
               <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
