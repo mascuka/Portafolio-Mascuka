@@ -138,7 +138,7 @@ export default function Experiencia({ data, onUpdate }) {
 
   return (
     <SectionWrapper id="Experiencia">
-      <div className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 md:px-12 lg:px-20 relative z-10">
+      <div className="w-full max-w-[1600px] mx-auto px-10 sm:px-6 md:px-12 lg:px-20 relative z-10">
         
         {/* HEADER CENTRADO - MISMO TAMAÑO QUE HABILIDADES */}
         <div className="flex items-center justify-center gap-4 sm:gap-6 mb-8 sm:mb-20 relative">
@@ -227,7 +227,7 @@ export default function Experiencia({ data, onUpdate }) {
                 </>
               )}
 
-              <div className="overflow-visible">
+              <div className="overflow-hidden py-2">
                 <div 
                   className={`flex ${isTransitioning ? 'transition-transform duration-500 ease-out' : ''}`}
                   style={{

@@ -275,53 +275,23 @@ export default function Habilidades({ data, onUpdate }) {
     const columnWidth = rect.width / 12;
     const rowHeight = 200;
 
-    const column = Math.max(1, Math.min(12, Math.floor(x / columnWidth) + 1));
+    let column = Math.max(1, Math.floor(x / columnWidth) + 1);
     const row = Math.max(1, Math.floor(y / rowHeight) + 1);
 
     const draggedSectionData = sections[draggedSection];
     const cols = widthToColumns[draggedSectionData.width] || 12;
-    const rows = draggedSectionData.rows || 1;
 
-    if (column + cols - 1 > 12) return;
-
-    const hasCollision = sections.some((section, idx) => {
-      if (idx === draggedSection) return false;
-      
-      const sRow = section.gridRow || 1;
-      const sCol = section.gridColumn || 1;
-      const sRows = section.rows || 1;
-      const sCols = widthToColumns[section.width] || 12;
-
-      const rowOverlap = !(row + rows - 1 < sRow || row > sRow + sRows - 1);
-      const colOverlap = !(column + cols - 1 < sCol || column > sCol + sCols - 1);
-
-      return rowOverlap && colOverlap;
-    });
-
-    if (!hasCollision) {
-      setDragOverPosition({ row, column });
-    } else {
-      setDragOverPosition(null);
+    // Ajustar columna si se sale del grid
+    if (column + cols - 1 > 12) {
+      column = 13 - cols;
     }
+
+    // SIEMPRE mostrar la posición
+    setDragOverPosition({ row, column });
   };
 
   const onDropGrid = () => {
-    if (draggedSection === null) {
-      setDraggedSection(null);
-      setDragOverPosition(null);
-      setIsDraggingSection(false);
-      setOriginalPosition(null);
-      return;
-    }
-
-    if (!dragOverPosition) {
-      const updated = [...sections];
-      updated[draggedSection] = {
-        ...updated[draggedSection],
-        gridRow: originalPosition.gridRow,
-        gridColumn: originalPosition.gridColumn
-      };
-      onUpdate({ sections: updated, header: data?.header || headerData });
+    if (draggedSection === null || !dragOverPosition) {
       setDraggedSection(null);
       setDragOverPosition(null);
       setIsDraggingSection(false);
@@ -357,6 +327,7 @@ export default function Habilidades({ data, onUpdate }) {
     }
     e.stopPropagation();
     setDraggedSkill({ sectionIndex, skillIndex });
+    setDropTarget({ sectionIndex, skillIndex });
   };
 
   const onDragOverSkill = (e, sectionIndex, skillIndex) => {
@@ -367,16 +338,27 @@ export default function Habilidades({ data, onUpdate }) {
   };
 
   const onDropSkill = (e, targetSectionIndex, targetSkillIndex) => {
+    e.preventDefault();
     e.stopPropagation();
+    
     if (!draggedSkill || draggedSkill.sectionIndex !== targetSectionIndex || isDraggingSection) {
+      setDraggedSkill(null);
       setDropTarget({ sectionIndex: null, skillIndex: null });
       return; 
     }
+
+    if (draggedSkill.skillIndex === targetSkillIndex) {
+      setDraggedSkill(null);
+      setDropTarget({ sectionIndex: null, skillIndex: null });
+      return;
+    }
+
     const updatedSections = [...sections];
     const skills = [...updatedSections[targetSectionIndex].skills];
     const [reorderedItem] = skills.splice(draggedSkill.skillIndex, 1);
     skills.splice(targetSkillIndex, 0, reorderedItem);
     updatedSections[targetSectionIndex].skills = skills;
+    
     onUpdate({ sections: updatedSections, header: data?.header || headerData });
     setDraggedSkill(null);
     setDropTarget({ sectionIndex: null, skillIndex: null });
@@ -426,6 +408,13 @@ export default function Habilidades({ data, onUpdate }) {
         const res = await uploadImage(skillForm.certFile, 'portfolio/certificates');
         certImage = res.secure_url;
         certPublicId = res.public_id;
+      }
+
+      // Si se desmarcó el certificado, eliminar de Cloudinary
+      if (!skillForm.hasCertificate && certPublicId) {
+        await deleteImage(certPublicId);
+        certImage = '';
+        certPublicId = '';
       }
 
       const skillData = { 
@@ -524,6 +513,15 @@ export default function Habilidades({ data, onUpdate }) {
             min-height: auto !important;
           }
         }
+
+        /* Drag & Drop mejoras */
+        [draggable="true"] {
+          cursor: grab;
+        }
+        
+        [draggable="true"]:active {
+          cursor: grabbing;
+        }
       `}</style>
 
       <div className="w-full max-w-[1800px] mx-auto px-6 md:px-12 lg:px-18 relative z-10">
@@ -577,13 +575,14 @@ export default function Habilidades({ data, onUpdate }) {
             onDragOver={onDragOverGrid}
             onDrop={onDropGrid}
           >
-            {dragOverPosition && isAdmin && (
+            {dragOverPosition && isAdmin && draggedSection !== null && (
               <div
-                className="absolute border-2 border-dashed border-[#0078C8] bg-[#0078C8]/10 rounded-xl pointer-events-none z-0"
+                className="absolute border-4 border-dashed border-[#0078C8] bg-[#0078C8]/20 rounded-xl pointer-events-none z-50 animate-pulse"
                 style={{
                   gridRow: `${dragOverPosition.row} / span ${sections[draggedSection]?.rows || 1}`,
                   gridColumn: `${dragOverPosition.column} / span ${widthToColumns[sections[draggedSection]?.width] || 12}`,
-                  minHeight: `${(sections[draggedSection]?.rows || 1) * 180}px`
+                  minHeight: `${(sections[draggedSection]?.rows || 1) * 180}px`,
+                  boxShadow: '0 0 30px rgba(0, 120, 200, 0.5)'
                 }}
               />
             )}
@@ -706,15 +705,19 @@ export default function Habilidades({ data, onUpdate }) {
                           return (
                             <div key={`${skill.id || skill.name}-${actualSkillIndex}`} className="flex items-center justify-center"> 
                               {isAdmin && dropTarget.sectionIndex === sectionIndex && dropTarget.skillIndex === actualSkillIndex && !isDraggingSection && (
-                                <div className="w-1 h-20 bg-[#0078C8] rounded-full mx-2 animate-pulse" />
+                                <div className="w-2 h-24 bg-[#0078C8] rounded-full mx-2 shadow-lg shadow-[#0078C8]/50" style={{ animation: 'pulse 1s infinite' }} />
                               )}
 
                               <div 
-                                className="relative w-[100px] h-[120px] group/card"
+                                className="relative w-[100px] h-[120px] group/card transition-all duration-150"
                                 draggable={isAdmin && !isDraggingSection}
                                 onDragStart={(e) => onDragStartSkill(e, sectionIndex, actualSkillIndex)}
                                 onDragOver={(e) => onDragOverSkill(e, sectionIndex, actualSkillIndex)}
                                 onDrop={(e) => onDropSkill(e, sectionIndex, actualSkillIndex)}
+                                style={{
+                                  opacity: draggedSkill?.sectionIndex === sectionIndex && draggedSkill?.skillIndex === actualSkillIndex ? 0.3 : 1,
+                                  cursor: isAdmin && !isDraggingSection ? 'grab' : 'default'
+                                }}
                               >
                                 <div 
                                   onClick={(e) => {
@@ -724,7 +727,7 @@ export default function Habilidades({ data, onUpdate }) {
                                       certificateViewModal.open();
                                     }
                                   }}
-                                  className={`relative w-full h-full rounded-lg p-3 flex flex-col items-center justify-center gap-2 border transition-all duration-300 hover:-translate-y-2 hover:shadow-xl ${
+                                  className={`relative w-full h-full rounded-lg p-3 flex flex-col items-center justify-center gap-3 border transition-all duration-300 hover:-translate-y-2 hover:shadow-xl ${
                                     isDark 
                                       ? 'bg-white/[0.03] border-white/10 hover:border-[#0078C8]/40' 
                                       : 'bg-white border-slate-200 hover:border-[#0078C8]/40 shadow-sm'
@@ -740,7 +743,7 @@ export default function Habilidades({ data, onUpdate }) {
                                   
                                   <img src={skill.icon} alt={skill.name} className="w-12 h-12 object-contain" />
                                   
-                                  <span className={`text-[11px] font-bold text-center leading-tight ${
+                                  <span className={`text-sm font-bold text-center leading-tight ${
                                     isDark ? 'text-slate-300' : 'text-slate-700'
                                   }`}>
                                     {skill.name}

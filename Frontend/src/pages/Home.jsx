@@ -10,7 +10,8 @@ export default function Home({ data, cvUrl, onUpdate, onUpdateCV }) {
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({ 
     title: '', subtitle: '', description: '', image: '', imagePublicId: '',
-    email: '', whatsapp: '', linkedin: '', cvPublicId: ''
+    email: '', whatsapp: '', linkedin: '', cvPublicId: '',
+    mailSuccessImage: '', mailSuccessPublicId: ''
   });
   const [isVisible, setIsVisible] = useState(false);
   const [showMailModal, setShowMailModal] = useState(false);
@@ -25,13 +26,39 @@ export default function Home({ data, cvUrl, onUpdate, onUpdateCV }) {
         title: data.title || '', subtitle: data.subtitle || '', description: data.description || '', 
         image: data.image || '', imagePublicId: data.imagePublicId || '',
         whatsapp: data.whatsapp || '', linkedin: data.linkedin || '', email: data.email || '',
-        cvPublicId: data.cvPublicId || ''
+        cvPublicId: data.cvPublicId || '',
+        mailSuccessImage: data.mailSuccessImage || '',
+        mailSuccessPublicId: data.mailSuccessPublicId || ''
       });
     }
   }, [data]);
 
+  // Función para borrar archivos físicamente del servidor (Cloudinary)
+  const deletePhysicalFile = async (publicId) => {
+    if (!publicId) return;
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/delete-image`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ publicId })
+      });
+      return await response.json();
+    } catch (error) {
+      console.error("Error al eliminar archivo físico:", error);
+    }
+  };
+
   const handleSave = async () => {
     try {
+      // Si la imagen de perfil cambió, borramos la anterior física
+      if (data.imagePublicId && data.imagePublicId !== formData.imagePublicId) {
+        await deletePhysicalFile(data.imagePublicId);
+      }
+      // Si la imagen de mail cambió, borramos la anterior física
+      if (data.mailSuccessPublicId && data.mailSuccessPublicId !== formData.mailSuccessPublicId) {
+        await deletePhysicalFile(data.mailSuccessPublicId);
+      }
+
       const [tEN, sEN, dEN] = await Promise.all([
         translate(formData.title, { from: "es", to: "en" }),
         translate(formData.subtitle, { from: "es", to: "en" }),
@@ -60,7 +87,7 @@ export default function Home({ data, cvUrl, onUpdate, onUpdateCV }) {
           setShowMailModal(false);
           setMailStatus({ show: false, success: true, text: '' });
           mailForm.current.reset();
-        }, 2500);
+        }, formData.mailSuccessImage ? 4000 : 2500);
       })
       .catch((err) => {
         console.error('Error:', err);
@@ -86,8 +113,6 @@ export default function Home({ data, cvUrl, onUpdate, onUpdateCV }) {
       
       <div className={`w-full max-w-[1440px] mx-auto px-6 md:px-16 flex flex-col lg:flex-row items-center justify-center gap-20 lg:gap-40 transition-all duration-1000 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
         
-        {/* Lado Izquierdo: Textos y Botones */}
-        {/* Cambiado a 'text-center md:text-left' e 'items-center md:items-start' para centrar en móvil */}
         <div className="flex-1 z-10 text-center md:text-left space-y-8 flex flex-col items-center md:items-start">
           <div className="space-y-4">
             <h1 className={`text-5xl md:text-7xl lg:text-[110px] font-black tracking-tighter whitespace-nowrap leading-none transition-all duration-700 ${isDark ? 'text-white' : 'text-slate-900'}`}>
@@ -97,7 +122,6 @@ export default function Home({ data, cvUrl, onUpdate, onUpdateCV }) {
               <h2 className={`text-2xl md:text-3xl font-bold tracking-[0.3em] uppercase ${isDark ? 'text-[#00A3FF]' : 'text-[#0078C8]'}`}>
                 {lang === 'ES' ? data?.subtitle : data?.subtitleEN}
               </h2>
-              {/* Línea decorativa centrada en móvil mediante left-1/2 y -translate-x-1/2 */}
               <div className={`absolute -bottom-2 left-1/2 md:left-0 -translate-x-1/2 md:translate-x-0 h-[2px] bg-gradient-to-r to-transparent ${isDark ? 'from-[#00A3FF]' : 'from-[#0078C8]'}`} style={{ width: '60%' }} />
             </div>
           </div>
@@ -163,49 +187,65 @@ export default function Home({ data, cvUrl, onUpdate, onUpdateCV }) {
       {/* MODAL DE ENVÍO DE CORREO */}
       {showMailModal && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[600] p-4">
-          <form ref={mailForm} onSubmit={handleSendEmail} className={`w-full max-w-lg rounded-3xl overflow-hidden shadow-2xl border ${isDark ? 'bg-[#0F172A] border-white/10' : 'bg-white border-slate-200'}`}>
-            <div className="bg-[#0078C8] p-6 flex justify-between items-center text-white font-black text-[10px] uppercase tracking-widest">
-              <span>NUEVO CORREO</span>
-              <button type="button" onClick={() => setShowMailModal(false)} className="hover:rotate-90 transition-transform">✕</button>
+          {mailStatus.show && mailStatus.success && formData.mailSuccessImage ? (
+            <div className="flex flex-col items-center animate-in zoom-in duration-300">
+              <img 
+                src={formData.mailSuccessImage} 
+                alt="Success" 
+                className="max-w-[90vw] max-h-[80vh] object-contain rounded-2xl shadow-2xl shadow-blue-500/20"
+              />
+              <button 
+                onClick={() => setShowMailModal(false)}
+                className="mt-6 px-8 py-3 bg-white text-black font-black uppercase text-xs rounded-full hover:scale-105 transition-transform"
+              >
+                CERRAR
+              </button>
             </div>
-            
-            <div className="p-8 space-y-5">
-              <div className="space-y-1">
-                <label className="text-[10px] font-black uppercase text-gray-400 tracking-widest">Para:</label>
-                <div className={`p-4 rounded-xl border text-sm font-medium ${isDark ? 'bg-white/5 border-white/5 text-white/40' : 'bg-gray-100 border-slate-200 text-slate-500'}`}>
-                  {formData.email || 'tu@correo.com'}
-                </div>
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-[10px] font-black uppercase text-[#0078C8] tracking-widest">De:</label>
-                <input name="from_email" required type="email" placeholder="Ponga su correo aquí" className={`w-full p-4 rounded-xl border text-sm outline-none focus:border-[#0078C8] transition-colors ${isDark ? 'bg-white/5 border-white/10 text-white' : 'bg-gray-50 border-slate-200'}`} />
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-[10px] font-black uppercase text-[#0078C8] tracking-widest">Asunto:</label>
-                <input name="subject" required type="text" placeholder="Asunto del mensaje" className={`w-full p-4 rounded-xl border text-sm outline-none focus:border-[#0078C8] transition-colors ${isDark ? 'bg-white/5 border-white/10 text-white' : 'bg-gray-50 border-slate-200'}`} />
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-[10px] font-black uppercase text-[#0078C8] tracking-widest">Texto:</label>
-                <textarea name="message" required placeholder="Escriba su mensaje aquí..." className={`w-full p-4 rounded-xl border text-sm outline-none focus:border-[#0078C8] h-32 resize-none transition-colors ${isDark ? 'bg-white/5 border-white/10 text-white' : 'bg-gray-50 border-slate-200'}`} />
+          ) : (
+            <form ref={mailForm} onSubmit={handleSendEmail} className={`w-full max-w-lg rounded-3xl overflow-hidden shadow-2xl border ${isDark ? 'bg-[#0F172A] border-white/10' : 'bg-white border-slate-200'}`}>
+              <div className="bg-[#0078C8] p-6 flex justify-between items-center text-white font-black text-[10px] uppercase tracking-widest">
+                <span>NUEVO CORREO</span>
+                <button type="button" onClick={() => setShowMailModal(false)} className="hover:rotate-90 transition-transform">✕</button>
               </div>
               
-              {mailStatus.show && (
-                <div className={`p-4 rounded-xl text-[10px] font-bold text-center uppercase tracking-widest animate-pulse ${mailStatus.success ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
-                  {mailStatus.text}
+              <div className="p-8 space-y-5">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase text-gray-400 tracking-widest">Para:</label>
+                  <div className={`p-4 rounded-xl border text-sm font-medium ${isDark ? 'bg-white/5 border-white/5 text-white/40' : 'bg-gray-100 border-slate-200 text-slate-500'}`}>
+                    {formData.email || 'tu@correo.com'}
+                  </div>
                 </div>
-              )}
 
-              <div className="flex gap-4 pt-2">
-                <button type="button" onClick={() => setShowMailModal(false)} className={`flex-1 py-4 border rounded-xl text-[10px] font-black tracking-widest transition-all ${isDark ? 'border-white/10 text-white hover:bg-white/5' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}>CANCELAR</button>
-                <button disabled={isSending} type="submit" className="flex-[2] py-4 bg-[#0078C8] text-white text-[10px] font-black tracking-widest rounded-xl hover:bg-[#005A96] disabled:opacity-50 transition-all">
-                  {isSending ? 'ENVIANDO...' : 'ENVIAR MENSAJE'}
-                </button>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase text-[#0078C8] tracking-widest">De:</label>
+                  <input name="from_email" required type="email" placeholder="Ponga su correo aquí" className={`w-full p-4 rounded-xl border text-sm outline-none focus:border-[#0078C8] transition-colors ${isDark ? 'bg-white/5 border-white/10 text-white' : 'bg-gray-50 border-slate-200'}`} />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase text-[#0078C8] tracking-widest">Asunto:</label>
+                  <input name="subject" required type="text" placeholder="Asunto del mensaje" className={`w-full p-4 rounded-xl border text-sm outline-none focus:border-[#0078C8] transition-colors ${isDark ? 'bg-white/5 border-white/10 text-white' : 'bg-gray-50 border-slate-200'}`} />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase text-[#0078C8] tracking-widest">Texto:</label>
+                  <textarea name="message" required placeholder="Escriba su mensaje aquí..." className={`w-full p-4 rounded-xl border text-sm outline-none focus:border-[#0078C8] h-32 resize-none transition-colors ${isDark ? 'bg-white/5 border-white/10 text-white' : 'bg-gray-50 border-slate-200'}`} />
+                </div>
+                
+                {mailStatus.show && (
+                  <div className={`p-4 rounded-xl text-[10px] font-bold text-center uppercase tracking-widest animate-pulse ${mailStatus.success ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
+                    {mailStatus.text}
+                  </div>
+                )}
+
+                <div className="flex gap-4 pt-2">
+                  <button type="button" onClick={() => setShowMailModal(false)} className={`flex-1 py-4 border rounded-xl text-[10px] font-black tracking-widest transition-all ${isDark ? 'border-white/10 text-white hover:bg-white/5' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}>CANCELAR</button>
+                  <button disabled={isSending} type="submit" className="flex-[2] py-4 bg-[#0078C8] text-white text-[10px] font-black tracking-widest rounded-xl hover:bg-[#005A96] disabled:opacity-50 transition-all">
+                    {isSending ? 'ENVIANDO...' : 'ENVIAR MENSAJE'}
+                  </button>
+                </div>
               </div>
-            </div>
-          </form>
+            </form>
+          )}
         </div>
       )}
 
@@ -250,12 +290,34 @@ export default function Home({ data, cvUrl, onUpdate, onUpdateCV }) {
                     </div>
                   </div>
                 </div>
+
                 <div className="lg:col-span-5 space-y-8">
                   <ImageUploader currentImage={formData.image} onImageChange={(url, id) => setFormData(p => ({...p, image: url, imagePublicId: id}))} isDark={isDark} />
+                  
+                  <div className="space-y-3 p-4 rounded-2xl border border-dashed border-white/10">
+                    <label className="text-[10px] font-black text-[#00A3FF] uppercase tracking-[0.2em] flex justify-between items-center">
+                      Imagen Éxito Correo
+                      {formData.mailSuccessImage && (
+                        <button 
+                          onClick={() => setFormData(p => ({...p, mailSuccessImage: '', mailSuccessPublicId: ''}))}
+                          className="text-red-500 hover:text-red-400 lowercase font-normal text-[9px] tracking-normal"
+                        >
+                          [ eliminar ]
+                        </button>
+                      )}
+                    </label>
+                    <ImageUploader 
+                      currentImage={formData.mailSuccessImage} 
+                      onImageChange={(url, id) => setFormData(p => ({...p, mailSuccessImage: url, mailSuccessPublicId: id}))} 
+                      isDark={isDark} 
+                    />
+                  </div>
+
                   <CVUploader currentCV={cvUrl} onCVChange={(url, id) => {
                     onUpdateCV(url, id);
                     setFormData(p => ({...p, cvPublicId: id}));
                   }} isDark={isDark} />
+                  
                   <button onClick={handleSave} className="relative w-full group overflow-hidden rounded-xl">
                     <div className="absolute inset-0 bg-gradient-to-r from-[#0078C8] to-[#005A96]" />
                     <div className="relative py-5 flex items-center justify-center gap-3 text-white font-black uppercase tracking-[0.4em] text-[10px]">GUARDAR CAMBIOS</div>
