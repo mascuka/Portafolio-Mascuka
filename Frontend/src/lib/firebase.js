@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getAuth, GoogleAuthProvider } from "firebase/auth";
+import { getAuth, GoogleAuthProvider, setPersistence, browserLocalPersistence } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
@@ -11,10 +11,11 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
 
-// Inicializamos Firebase
 const app = initializeApp(firebaseConfig);
-
-// Exportamos lo que vamos a usar en toda la web
 export const auth = getAuth(app);
+
+// Esto es la clave: Firebase recordará quién eres al recargar
+setPersistence(auth, browserLocalPersistence);
+
 export const db = getFirestore(app);
 export const googleProvider = new GoogleAuthProvider();
