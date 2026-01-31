@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@600&display=swap');
 @import "tailwindcss";
 
 @theme {
@@ -45,7 +46,7 @@ body.light {
 
 section {
   position: relative;
-  scroll-margin-top: 80px;
+  scroll-margin-top: 0px;
 }
 
 /* Efecto de partículas flotantes al hacer scroll */

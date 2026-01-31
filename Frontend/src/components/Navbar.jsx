@@ -69,16 +69,44 @@ export default function Navbar({ data, onUpdate }) {
   const handleNavClick = (id) => {
     const element = document.getElementById(id);
     if (element) {
-      window.scrollTo({ top: element.offsetTop - 80, behavior: 'smooth' });
+      window.scrollTo({ top: element.offsetTop - 30, behavior: 'smooth' });
       setActiveSection(id);
       setIsOpen(false);
     }
   };
 
+  // Efecto para manejar el scroll de fondo y el IntersectionObserver para secciones activas
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+
+    // Lógica para detectar qué sección está en pantalla
+    const observerOptions = {
+      root: null,
+      rootMargin: '-40% 0px -40% 0px', // Detecta cuando la sección está en el centro
+      threshold: 0
+    };
+
+    const observerCallback = (entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          setActiveSection(entry.target.id);
+        }
+      });
+    };
+
+    const observer = new IntersectionObserver(observerCallback, observerOptions);
+    
+    // Observar cada sección definida en navLinks
+    navLinks.forEach(link => {
+      const section = document.getElementById(link.id);
+      if (section) observer.observe(section);
+    });
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      observer.disconnect();
+    };
   }, []);
 
   const navLinks = [
@@ -98,31 +126,6 @@ export default function Navbar({ data, onUpdate }) {
     if (user && user.email === ADMIN_EMAIL) {
       return (
         <div className="flex items-center gap-3 animate-in slide-in-from-left-4 duration-500">
-          {/* Badge Admin Mode con gradiente dorado */}
-          <div className={`relative px-4 py-1.5 rounded-full font-bold text-xs tracking-wider uppercase overflow-hidden group ${
-            isDark 
-              ? 'bg-gradient-to-r from-yellow-500/20 via-amber-500/20 to-yellow-600/20 text-yellow-400 shadow-lg shadow-yellow-500/20' 
-              : 'bg-gradient-to-r from-yellow-50 via-amber-50 to-yellow-100 text-yellow-700 shadow-lg shadow-yellow-200/50'
-          }`}>
-            {/* Brillo animado */}
-            <div className={`absolute inset-0 ${
-              isDark ? 'bg-gradient-to-r from-transparent via-yellow-400/10 to-transparent' : 'bg-gradient-to-r from-transparent via-white/50 to-transparent'
-            } translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000`} />
-            
-            {/* Borde dorado */}
-            <div className={`absolute inset-0 rounded-full ${
-              isDark ? 'ring-1 ring-yellow-500/40' : 'ring-1 ring-yellow-400/60'
-            }`} />
-            
-            {/* Icono y texto */}
-            <span className="relative flex items-center gap-2">
-              <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-              </svg>
-              Admin Mode
-            </span>
-          </div>
-          
           {/* Botón Logout elegante */}
           <button 
             onClick={logout} 
@@ -209,30 +212,36 @@ export default function Navbar({ data, onUpdate }) {
           {/* Desktop Menu */}
           <ul className="hidden lg:flex gap-10">
             {navLinks.map((link) => (
-              <li 
-                key={link.id} 
-                onClick={() => handleNavClick(link.id)} 
-                className={`relative cursor-pointer text-[10px] font-bold uppercase tracking-[0.2em] transition-all duration-300 group ${
-                  activeSection === link.id 
-                    ? (isDark ? 'text-white' : 'text-slate-900') 
-                    : (isDark ? 'text-white/40 hover:text-white/80' : 'text-slate-400 hover:text-slate-600')
-                }`}
-              >
-                {lang === 'ES' ? link.name : link.nameEN}
-                <span className={`absolute -bottom-1 left-1/2 -translate-x-1/2 h-[1px] bg-[#0078C8] transition-all duration-300 ${
-                  activeSection === link.id 
-                    ? 'w-full opacity-100' 
-                    : 'w-0 opacity-0 group-hover:w-1/2 group-hover:opacity-50'
-                }`} />
-              </li>
+                            <li 
+                  key={link.id} 
+                  onClick={() => handleNavClick(link.id)} 
+                  className={`relative cursor-pointer transition-all duration-300 group
+                    text-[14px] 
+                    font-semibold 
+                    font-['Quicksand'] 
+                     tracking-[0.2em] 
+                    ${activeSection === link.id 
+                      ? (isDark ? 'text-white' : 'text-slate-900') 
+                      : (isDark ? 'text-white/40 hover:text-white/80' : 'text-slate-400 hover:text-slate-600')
+                    }`}
+                >
+                  {lang === 'ES' ? link.name : link.nameEN}
+                  <span className={`absolute -bottom-1 left-1/2 -translate-x-1/2 h-[1.5px] bg-[#0078C8] transition-all duration-300 ${
+                    activeSection === link.id 
+                      ? 'w-full opacity-100' 
+                      : 'w-0 opacity-0 group-hover:w-1/2 group-hover:opacity-50'
+                  }`} />
+                </li> 
             ))}
           </ul>
 
-          {/* Mobile Menu Button */}
+          {/* Mobile Menu Button - CORREGIDO: Visible en ambos modos */}
           <button
             onClick={() => setIsOpen(!isOpen)}
             className={`lg:hidden p-2 rounded-lg transition-colors ${
-              isDark ? 'hover:bg-white/5' : 'hover:bg-slate-100'
+              isDark 
+                ? 'hover:bg-white/5 text-white' 
+                : 'hover:bg-slate-100 text-slate-900'
             }`}
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -272,22 +281,24 @@ export default function Navbar({ data, onUpdate }) {
               </button>
             </div>
 
-            {/* Theme Toggle */}
+            {/* Theme Toggle - CORREGIDO: Sol en claro, Luna en oscuro */}
             <button 
               onClick={() => setIsDark(!isDark)} 
               className={`relative w-10 h-10 flex items-center justify-center rounded-xl transition-all duration-300 border ${
                 isDark 
-                  ? 'bg-[#111827] border-white/5 text-yellow-400 hover:border-yellow-400/30' 
-                  : 'bg-white border-slate-200 text-slate-400 hover:border-blue-500/30 hover:text-blue-500'
+                  ? 'bg-[#111827] border-white/5 text-slate-400 hover:border-white/20' 
+                  : 'bg-white border-slate-200 text-yellow-500 hover:border-yellow-400/30'
               }`}
             >
               {isDark ? (
-                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" />
-                </svg>
-              ) : (
+                /* Luna para Modo Oscuro */
                 <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                   <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
+                </svg>
+              ) : (
+                /* Sol para Modo Claro */
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" />
                 </svg>
               )}
             </button>
@@ -305,7 +316,7 @@ export default function Navbar({ data, onUpdate }) {
               <button
                 key={link.id}
                 onClick={() => handleNavClick(link.id)}
-                className={`block w-full text-left py-2 text-sm font-bold uppercase tracking-wider transition-colors ${
+                className={`block w-full text-left py-2 text-sm font-bold  tracking-wider transition-colors ${
                   activeSection === link.id
                     ? (isDark ? 'text-white' : 'text-slate-900')
                     : (isDark ? 'text-white/40' : 'text-slate-400')
@@ -341,25 +352,28 @@ export default function Navbar({ data, onUpdate }) {
                 </button>
               </div>
 
+              {/* Theme Toggle Mobile - CORREGIDO: Sol en claro, Luna en oscuro */}
               <button 
                 onClick={() => setIsDark(!isDark)} 
                 className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all duration-300 border ${
                   isDark 
-                    ? 'bg-[#111827] border-white/5 text-yellow-400' 
-                    : 'bg-white border-slate-200 text-slate-400'
+                    ? 'bg-[#111827] border-white/5 text-slate-400' 
+                    : 'bg-white border-slate-200 text-yellow-500'
                 }`}
               >
                 {isDark ? (
                   <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" />
+                    <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
                   </svg>
                 ) : (
                   <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
+                    <path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" />
                   </svg>
                 )}
               </button>
             </div>
+            
+            {renderAdminButton()}
           </div>
         </div>
       )}

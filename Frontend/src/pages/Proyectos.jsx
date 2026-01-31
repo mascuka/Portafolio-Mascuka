@@ -142,6 +142,28 @@ const cardsPerRow = isMobile ? 1 : isSmall ? 2 : isTablet ? 3 : isMedium ? 4 : 5
     }));
   };
 
+  const moveImage = (index, direction) => {
+    const newIndex = direction === 'up' ? index - 1 : index + 1;
+    
+    if (newIndex < 0 || newIndex >= formData.images.length) return;
+    
+    const newImages = [...formData.images];
+    const newImageFiles = [...formData.imageFiles];
+    const newImagePublicIds = [...formData.imagePublicIds];
+    
+    // Intercambiar posiciones
+    [newImages[index], newImages[newIndex]] = [newImages[newIndex], newImages[index]];
+    [newImageFiles[index], newImageFiles[newIndex]] = [newImageFiles[newIndex], newImageFiles[index]];
+    [newImagePublicIds[index], newImagePublicIds[newIndex]] = [newImagePublicIds[newIndex], newImagePublicIds[index]];
+    
+    setFormData(prev => ({
+      ...prev,
+      images: newImages,
+      imageFiles: newImageFiles,
+      imagePublicIds: newImagePublicIds
+    }));
+  };
+
   const getAvailableOrdersForRow = (rowNumber) => {
     const projectsInRow = projectsList.filter(p => 
       (p.row || 1) === rowNumber && (editingId ? p.id !== editingId : true)
@@ -519,7 +541,51 @@ const cardsPerRow = isMobile ? 1 : isSmall ? 2 : isTablet ? 3 : isMedium ? 4 : 5
                 {formData.images.map((img, idx) => (
                   <div key={idx} className="relative group">
                     <img src={img} alt="" className="w-full h-20 object-cover rounded-lg border border-[#0078C8]/30" />
-                    <button onClick={() => removeImage(idx)} className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center">×</button>
+                    
+                    {/* Badge de posición */}
+                    <div className="absolute top-1 left-1 bg-[#0078C8] text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                      {idx + 1}
+                    </div>
+                    
+                    {/* Botones de control */}
+                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center gap-1">
+                      {/* Mover arriba */}
+                      {idx > 0 && (
+                        <button 
+                          onClick={() => moveImage(idx, 'up')} 
+                          className="bg-blue-500 hover:bg-blue-600 text-white rounded-full w-6 h-6 flex items-center justify-center transition-colors"
+                          title="Mover arriba"
+                        >
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="3">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
+                          </svg>
+                        </button>
+                      )}
+                      
+                      {/* Mover abajo */}
+                      {idx < formData.images.length - 1 && (
+                        <button 
+                          onClick={() => moveImage(idx, 'down')} 
+                          className="bg-blue-500 hover:bg-blue-600 text-white rounded-full w-6 h-6 flex items-center justify-center transition-colors"
+                          title="Mover abajo"
+                        >
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="3">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </button>
+                      )}
+                      
+                      {/* Eliminar */}
+                      <button 
+                        onClick={() => removeImage(idx)} 
+                        className="bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center transition-colors"
+                        title="Eliminar"
+                      >
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="3">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>

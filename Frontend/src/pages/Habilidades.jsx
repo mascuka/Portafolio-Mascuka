@@ -255,6 +255,10 @@ export default function Habilidades({ data, onUpdate }) {
   };
 
   const onDragStartSection = (e, index) => {
+    if (!isAdmin) {
+      e.preventDefault();
+      return;
+    }
     e.dataTransfer.effectAllowed = 'move';
     const section = sections[index];
     setOriginalPosition({ gridRow: section.gridRow, gridColumn: section.gridColumn });
@@ -291,7 +295,7 @@ export default function Habilidades({ data, onUpdate }) {
   };
 
   const onDropGrid = () => {
-    if (draggedSection === null || !dragOverPosition) {
+    if (!isAdmin || draggedSection === null || !dragOverPosition) {
       setDraggedSection(null);
       setDragOverPosition(null);
       setIsDraggingSection(false);
@@ -321,7 +325,7 @@ export default function Habilidades({ data, onUpdate }) {
   };
 
   const onDragStartSkill = (e, sectionIndex, skillIndex) => {
-    if (isDraggingSection) {
+    if (!isAdmin || isDraggingSection) {
       e.preventDefault();
       return;
     }
@@ -333,7 +337,7 @@ export default function Habilidades({ data, onUpdate }) {
   const onDragOverSkill = (e, sectionIndex, skillIndex) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!draggedSkill || draggedSkill.sectionIndex !== sectionIndex || isDraggingSection) return;
+    if (!isAdmin || !draggedSkill || draggedSkill.sectionIndex !== sectionIndex || isDraggingSection) return;
     setDropTarget({ sectionIndex, skillIndex });
   };
 
@@ -341,7 +345,7 @@ export default function Habilidades({ data, onUpdate }) {
     e.preventDefault();
     e.stopPropagation();
     
-    if (!draggedSkill || draggedSkill.sectionIndex !== targetSectionIndex || isDraggingSection) {
+    if (!isAdmin || !draggedSkill || draggedSkill.sectionIndex !== targetSectionIndex || isDraggingSection) {
       setDraggedSkill(null);
       setDropTarget({ sectionIndex: null, skillIndex: null });
       return; 
@@ -598,7 +602,7 @@ export default function Habilidades({ data, onUpdate }) {
               return (
                 <div 
                   key={sectionIndex}
-                  className={`skill-section-card group/section space-y-3 relative transition-all duration-200 ${
+                  className={`skill-section-card group/section space-y-3 relative transition-all duration-300 hover:-translate-y-2 hover:shadow-xl ${
                     isDark ? 'bg-white/[0.02]' : 'bg-white'
                   } rounded-xl p-2 border ${
                     isDark ? 'border-white/5' : 'border-slate-200'
@@ -635,33 +639,33 @@ export default function Habilidades({ data, onUpdate }) {
                     </h2>
                     
                     {isAdmin && (
-                      <div className="absolute right-0 flex gap-1.5 items-center p-1.5 rounded-lg backdrop-blur-sm bg-gradient-to-r from-slate-900/60 to-slate-800/60 border border-white/10 shadow-lg">
-                        <button 
-                          onClick={() => openSectionModal(sectionIndex)} 
-                          className="p-2 text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 rounded-md transition-all"
-                          title="Editar sección"
-                        >
-                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" strokeWidth="2" />
-                          </svg>
-                        </button>
-                        <div className="w-px h-5 bg-white/20"></div>
-                        <button 
-                          onClick={() => handleDeleteSection(sectionIndex)} 
-                          className="p-2 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-md transition-all"
-                          title="Eliminar sección"
-                        >
-                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path d="M6 18L18 6M6 6l12 12" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-                          </svg>
-                        </button>
-                        <div className="w-px h-5 bg-white/20"></div>
+                      <div className="absolute right-2 top-0 flex flex-col gap-2 z-20 opacity-0 group-hover/section:opacity-100 transition-all duration-300">
                         <button 
                           onClick={() => openSkillModal(sectionIndex)} 
-                          className="px-3 py-1.5 bg-gradient-to-r from-[#0078C8] to-[#005A96] text-white text-[9px] font-bold rounded-md uppercase hover:from-[#005A96] hover:to-[#004070] transition-all shadow-md hover:shadow-lg"
+                          className="p-2 rounded-xl bg-[#469642]/10 text-[#469642] hover:bg-[#469642] hover:text-white transition-all"
                           title="Agregar skill"
                         >
-                          + Skill
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5">
+                            <path d="M12 4v16m8-8H4" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        </button>
+                        <button 
+                          onClick={() => openSectionModal(sectionIndex)} 
+                          className="p-2 rounded-xl bg-blue-500/10 text-blue-500 hover:bg-blue-500 hover:text-white transition-all"
+                          title="Editar sección"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+                            <path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        </button>
+                        <button 
+                          onClick={() => handleDeleteSection(sectionIndex)} 
+                          className="p-2 rounded-xl bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all"
+                          title="Eliminar sección"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+                            <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
                         </button>
                       </div>
                     )}
@@ -720,18 +724,11 @@ export default function Habilidades({ data, onUpdate }) {
                                 }}
                               >
                                 <div 
-                                  onClick={(e) => {
-                                    if (skill.hasCertificate) {
-                                      e.stopPropagation();
-                                      setSelectedCert(skill);
-                                      certificateViewModal.open();
-                                    }
-                                  }}
                                   className={`relative w-full h-full rounded-lg p-3 flex flex-col items-center justify-center gap-3 border transition-all duration-300 hover:-translate-y-2 hover:shadow-xl ${
                                     isDark 
                                       ? 'bg-white/[0.03] border-white/10 hover:border-[#0078C8]/40' 
                                       : 'bg-white border-slate-200 hover:border-[#0078C8]/40 shadow-sm'
-                                  } ${skill.hasCertificate ? 'cursor-pointer' : ''}`}
+                                  }`}
                                 >
                                   {skill.hasCertificate && (
                                     <div className="absolute top-1.5 right-1.5">
@@ -750,21 +747,39 @@ export default function Habilidades({ data, onUpdate }) {
                                   </span>
 
                                   {isAdmin && (
-                                    <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 flex gap-1 opacity-0 group-hover/card:opacity-100 transition-opacity z-30">
+                                    <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 flex gap-1.5 opacity-0 group-hover/card:opacity-100 transition-all duration-300 z-30">
+                                      {skill.hasCertificate && (
+                                        <button 
+                                          onClick={(e) => { 
+                                            e.stopPropagation(); 
+                                            setSelectedCert(skill);
+                                            certificateViewModal.open();
+                                          }} 
+                                          className="p-2 rounded-xl bg-[#469642]/10 text-[#469642] hover:bg-[#469642] hover:text-white transition-all"
+                                          title="Ver Certificado"
+                                        >
+                                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+                                            <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" strokeLinecap="round" strokeLinejoin="round" />
+                                            <path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" strokeLinecap="round" strokeLinejoin="round" />
+                                          </svg>
+                                        </button>
+                                      )}
                                       <button 
                                         onClick={(e) => { e.stopPropagation(); openSkillModal(sectionIndex, actualSkillIndex); }} 
-                                        className="bg-slate-800/90 hover:bg-blue-600 text-white w-5 h-5 flex items-center justify-center rounded transition-all"
+                                        className="p-2 rounded-xl bg-blue-500/10 text-blue-500 hover:bg-blue-500 hover:text-white transition-all"
+                                        title="Editar"
                                       >
-                                        <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                          <path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" strokeWidth="2" />
+                                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+                                          <path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" strokeLinecap="round" strokeLinejoin="round" />
                                         </svg>
                                       </button>
                                       <button 
                                         onClick={(e) => { e.stopPropagation(); handleDeleteSkill(sectionIndex, actualSkillIndex); }} 
-                                        className="bg-slate-800/90 hover:bg-red-600 text-white w-5 h-5 flex items-center justify-center rounded transition-all"
+                                        className="p-2 rounded-xl bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all"
+                                        title="Eliminar"
                                       >
-                                        <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                          <path d="M6 18L18 6M6 6l12 12" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+                                          <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" strokeLinecap="round" strokeLinejoin="round" />
                                         </svg>
                                       </button>
                                     </div>
