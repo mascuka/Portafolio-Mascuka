@@ -249,7 +249,15 @@ export default function Home({ data, cvUrl, onUpdate, onUpdateCV }) {
                 </div>
                 
                 {mailStatus.show && (
-                  <div className={`p-4 rounded-xl text-[10px] font-bold text-center uppercase tracking-widest animate-pulse ${mailStatus.success ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
+                  <div className={`p-4 rounded-xl text-[10px] font-bold text-center uppercase tracking-widest animate-pulse ${
+                    mailStatus.success 
+                      ? isDark 
+                        ? 'bg-green-500/10 text-green-500' 
+                        : 'bg-green-500/20 text-green-700 border-2 border-green-500/30'
+                      : isDark
+                        ? 'bg-red-500/10 text-red-500'
+                        : 'bg-red-500/20 text-red-700 border-2 border-red-500/30'
+                  }`}>
                     {mailStatus.text}
                   </div>
                 )}

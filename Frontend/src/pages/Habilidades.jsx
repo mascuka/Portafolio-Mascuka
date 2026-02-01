@@ -22,6 +22,8 @@ export default function Habilidades({ data, onUpdate }) {
   const [editingId, setEditingId] = useState(null);
   const [currentSection, setCurrentSection] = useState(null);
   const [selectedCert, setSelectedCert] = useState(null);
+  const [certViewIndex, setCertViewIndex] = useState(0);
+  const [certZoom, setCertZoom] = useState(1);
   const [draggedSkill, setDraggedSkill] = useState(null);
   const [draggedSection, setDraggedSection] = useState(null);
   const [dragOverPosition, setDragOverPosition] = useState(null);
@@ -36,7 +38,8 @@ export default function Habilidades({ data, onUpdate }) {
   
   const [skillForm, setSkillForm] = useState({ 
     name: '', icon: '', iconPublicId: '', iconFile: null, iconType: 'url',
-    hasCertificate: false, certTitle: '', certImage: '', certPublicId: '', certFile: null
+    hasCertificate: false, certTitle: '', certImage: '', certPublicId: '', certFile: null,
+    certImages: [], certPublicIds: [], certFiles: [], certTitles: []
   });
   
   const [sectionForm, setSectionForm] = useState({ 
@@ -91,6 +94,17 @@ export default function Habilidades({ data, onUpdate }) {
     });
     setCurrentIndices(initialIndices);
   }, [sections.length]);
+
+  // Bloquear scroll del body cuando el modal de certificado está abierto
+  useEffect(() => {
+    if (certificateViewModal.isOpen) {
+      document.body.style.overflow = 'hidden';
+      setCertZoom(1);
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [certificateViewModal.isOpen]);
 
   const handleNavigation = (sectionIndex, direction) => {
     if (isTransitioning[sectionIndex]) return;
@@ -247,7 +261,13 @@ export default function Habilidades({ data, onUpdate }) {
       const sectionToDelete = sections[index];
       for (const skill of sectionToDelete.skills) {
         if (skill?.iconPublicId) await deleteImage(skill.iconPublicId);
-        if (skill?.certPublicId) await deleteImage(skill.certPublicId);
+        if (skill?.certPublicIds?.length) {
+          for (const pubId of skill.certPublicIds) {
+            if (pubId) await deleteImage(pubId);
+          }
+        } else if (skill?.certPublicId) {
+          await deleteImage(skill.certPublicId);
+        }
       }
       const updated = sections.filter((_, i) => i !== index);
       await onUpdate({ sections: updated, header: data?.header || headerData });
@@ -294,6 +314,57 @@ export default function Habilidades({ data, onUpdate }) {
     setDragOverPosition({ row, column });
   };
 
+  // Retorna las celdas que ocupa una sección dada un row/col
+  const getOccupiedCells = (section, overrideRow, overrideCol) => {
+    const r = overrideRow ?? section.gridRow ?? 1;
+    const c = overrideCol ?? section.gridColumn ?? 1;
+    const rows = section.rows || 1;
+    const cols = widthToColumns[section.width] || 12;
+    const cells = new Set();
+    for (let row = r; row < r + rows; row++) {
+      for (let col = c; col < c + cols; col++) {
+        cells.add(`${row},${col}`);
+      }
+    }
+    return cells;
+  };
+
+  // Encuentran las secciones que colisionan con una posición dada
+  const findCollisions = (targetRow, targetCol, draggedIdx) => {
+    const dragged = sections[draggedIdx];
+    const targetCells = getOccupiedCells(dragged, targetRow, targetCol);
+    const collisions = [];
+    sections.forEach((section, idx) => {
+      if (idx === draggedIdx) return;
+      const cells = getOccupiedCells(section);
+      for (const cell of cells) {
+        if (targetCells.has(cell)) {
+          collisions.push(idx);
+          return;
+        }
+      }
+    });
+    return collisions;
+  };
+
+  // Busca la primera posición libre para empujar una sección
+  const findPushTarget = (section, startRow, allOccupied) => {
+    const cols = widthToColumns[section.width] || 12;
+    const rows = section.rows || 1;
+    for (let r = startRow; r <= 20; r++) {
+      for (let c = 1; c <= 13 - cols; c++) {
+        let free = true;
+        for (let dr = 0; dr < rows && free; dr++) {
+          for (let dc = 0; dc < cols && free; dc++) {
+            if (allOccupied.has(`${r + dr},${c + dc}`)) free = false;
+          }
+        }
+        if (free) return { row: r, col: c };
+      }
+    }
+    return null;
+  };
+
   const onDropGrid = () => {
     if (!isAdmin || draggedSection === null || !dragOverPosition) {
       setDraggedSection(null);
@@ -303,13 +374,44 @@ export default function Habilidades({ data, onUpdate }) {
       return;
     }
 
-    const updated = [...sections];
+    const updated = sections.map(s => ({ ...s }));
+    const targetRow = dragOverPosition.row;
+    const targetCol = dragOverPosition.column;
+
+    // Encontrar colisiones con la nueva posición
+    const collisions = findCollisions(targetRow, targetCol, draggedSection);
+
+    // Mover la sección arrastrada
     updated[draggedSection] = {
       ...updated[draggedSection],
-      gridRow: dragOverPosition.row,
-      gridColumn: dragOverPosition.column
+      gridRow: targetRow,
+      gridColumn: targetCol
     };
-    
+
+    // Empujar las secciones que colisionan hacia abajo
+    if (collisions.length > 0) {
+      const pushStartRow = targetRow + (updated[draggedSection].rows || 1);
+
+      collisions.forEach(collisionIdx => {
+        // Celdas ocupadas por todas excepto la que estamos empujando
+        const occupiedExcludingThis = new Set();
+        updated.forEach((section, idx) => {
+          if (idx === collisionIdx) return;
+          const cells = getOccupiedCells(section);
+          cells.forEach(c => occupiedExcludingThis.add(c));
+        });
+
+        const newPos = findPushTarget(updated[collisionIdx], pushStartRow, occupiedExcludingThis);
+        if (newPos) {
+          updated[collisionIdx] = {
+            ...updated[collisionIdx],
+            gridRow: newPos.row,
+            gridColumn: newPos.col
+          };
+        }
+      });
+    }
+
     onUpdate({ sections: updated, header: data?.header || headerData });
     setDraggedSection(null);
     setDragOverPosition(null);
@@ -373,18 +475,24 @@ export default function Habilidades({ data, onUpdate }) {
     
     if (skillIndex !== null) {
       const skill = sections[sectionIndex].skills[skillIndex];
+      const imgs = skill.certImages || (skill.certImage ? [skill.certImage] : []);
       setSkillForm({ 
         ...skill, 
         iconFile: null, 
         certFile: null,
-        iconType: skill.iconPublicId ? 'upload' : 'url'
+        certFiles: [],
+        iconType: skill.iconPublicId ? 'upload' : 'url',
+        certImages: imgs,
+        certPublicIds: skill.certPublicIds || (skill.certPublicId ? [skill.certPublicId] : []),
+        certTitles: skill.certTitles || imgs.map(() => skill.certTitle || '')
       });
       setEditingId(skillIndex);
       editSkillModal.open();
     } else {
       setSkillForm({ 
         name: '', icon: '', iconPublicId: '', iconFile: null, iconType: 'url',
-        hasCertificate: false, certTitle: '', certImage: '', certPublicId: '', certFile: null 
+        hasCertificate: false, certTitle: '', certImage: '', certPublicId: '', certFile: null,
+        certImages: [], certPublicIds: [], certFiles: [], certTitles: []
       });
       setEditingId(null);
       addSkillModal.open();
@@ -394,11 +502,11 @@ export default function Habilidades({ data, onUpdate }) {
   const saveSkillForm = async () => {
     if (!skillForm.name || (!skillForm.icon && !skillForm.iconFile)) 
       return alert("Completa campos básicos");
-    if (skillForm.hasCertificate && !skillForm.certFile && !skillForm.certImage) 
-      return alert("Carga el certificado");
+    if (skillForm.hasCertificate && skillForm.certImages.length === 0 && skillForm.certFiles.length === 0) 
+      return alert("Carga al menos un certificado");
 
     try {
-      let { icon, iconPublicId, certImage, certPublicId } = skillForm;
+      let { icon, iconPublicId } = skillForm;
 
       if (skillForm.iconType === 'upload' && skillForm.iconFile) {
         if (iconPublicId) await deleteImage(iconPublicId);
@@ -407,24 +515,46 @@ export default function Habilidades({ data, onUpdate }) {
         iconPublicId = res.public_id;
       }
 
-      if (skillForm.hasCertificate && skillForm.certFile) {
-        if (certPublicId) await deleteImage(certPublicId);
-        const res = await uploadImage(skillForm.certFile, 'portfolio/certificates');
-        certImage = res.secure_url;
-        certPublicId = res.public_id;
+      // Separar URLs ya guardadas (no base64) de las que son solo preview
+      let certImages = skillForm.certImages.filter(url => url.startsWith('http'));
+      let certPublicIds = [...skillForm.certPublicIds];
+      // Títulos que corresponden a las URLs ya guardadas (mismo filtro)
+      let certTitles = skillForm.certImages.map((url, i) => ({ url, title: skillForm.certTitles[i] || '' }))
+        .filter(item => item.url.startsWith('http'))
+        .map(item => item.title);
+
+      // Subir solo los archivos nuevos (certFiles)
+      if (skillForm.hasCertificate && skillForm.certFiles.length > 0) {
+        // Los títulos de los archivos nuevos están al final de certTitles (después de los guardados)
+        const newTitles = skillForm.certTitles.slice(
+          skillForm.certImages.filter(url => url.startsWith('http')).length
+        );
+        for (let i = 0; i < skillForm.certFiles.length; i++) {
+          const res = await uploadImage(skillForm.certFiles[i], 'portfolio/certificates');
+          certImages.push(res.secure_url);
+          certPublicIds.push(res.public_id);
+          certTitles.push(newTitles[i] || '');
+        }
       }
 
-      // Si se desmarcó el certificado, eliminar de Cloudinary
-      if (!skillForm.hasCertificate && certPublicId) {
-        await deleteImage(certPublicId);
-        certImage = '';
-        certPublicId = '';
+      // Si se desmarcó certificado, eliminar todos de Cloudinary
+      if (!skillForm.hasCertificate) {
+        for (const pubId of certPublicIds) {
+          if (pubId) await deleteImage(pubId);
+        }
+        certImages = [];
+        certPublicIds = [];
+        certTitles = [];
       }
 
       const skillData = { 
         ...skillForm, 
-        icon, iconPublicId, certImage, certPublicId,
-        iconFile: null, certFile: null 
+        icon, iconPublicId,
+        certImages, certPublicIds, certTitles,
+        certImage: certImages[0] || '',
+        certPublicId: certPublicIds[0] || '',
+        certTitle: certTitles[0] || '',
+        iconFile: null, certFile: null, certFiles: []
       };
 
       const updated = [...sections];
@@ -445,7 +575,14 @@ export default function Habilidades({ data, onUpdate }) {
     if (window.confirm("¿Eliminar esta habilidad?")) {
       const skill = sections[sectionIndex].skills[skillIndex];
       if (skill?.iconPublicId) await deleteImage(skill.iconPublicId);
-      if (skill?.certPublicId) await deleteImage(skill.certPublicId);
+      // Eliminar todos los certificados
+      if (skill?.certPublicIds?.length) {
+        for (const pubId of skill.certPublicIds) {
+          if (pubId) await deleteImage(pubId);
+        }
+      } else if (skill?.certPublicId) {
+        await deleteImage(skill.certPublicId);
+      }
       const updated = [...sections];
       updated[sectionIndex].skills = updated[sectionIndex].skills.filter((_, i) => i !== skillIndex);
       await onUpdate({ sections: updated, header: data?.header || headerData });
@@ -455,7 +592,8 @@ export default function Habilidades({ data, onUpdate }) {
   const resetSkillForm = () => {
     setSkillForm({ 
       name: '', icon: '', iconPublicId: '', iconFile: null, iconType: 'url',
-      hasCertificate: false, certTitle: '', certImage: '', certPublicId: '', certFile: null 
+      hasCertificate: false, certTitle: '', certImage: '', certPublicId: '', certFile: null,
+      certImages: [], certPublicIds: [], certFiles: [], certTitles: []
     });
     setEditingId(null);
     addSkillModal.close();
@@ -729,6 +867,14 @@ export default function Habilidades({ data, onUpdate }) {
                                       ? 'bg-white/[0.03] border-white/10 hover:border-[#0078C8]/40' 
                                       : 'bg-white border-slate-200 hover:border-[#0078C8]/40 shadow-sm'
                                   }`}
+                                  style={{ cursor: !isAdmin && skill.hasCertificate ? 'pointer' : undefined }}
+                                  onClick={() => {
+                                    if (!isAdmin && skill.hasCertificate) {
+                                      setSelectedCert(skill);
+                                      setCertViewIndex(0);
+                                      certificateViewModal.open();
+                                    }
+                                  }}
                                 >
                                   {skill.hasCertificate && (
                                     <div className="absolute top-1.5 right-1.5">
@@ -753,6 +899,7 @@ export default function Habilidades({ data, onUpdate }) {
                                           onClick={(e) => { 
                                             e.stopPropagation(); 
                                             setSelectedCert(skill);
+                                            setCertViewIndex(0);
                                             certificateViewModal.open();
                                           }} 
                                           className="p-2 rounded-xl bg-[#469642]/10 text-[#469642] hover:bg-[#469642] hover:text-white transition-all"
@@ -898,17 +1045,94 @@ export default function Habilidades({ data, onUpdate }) {
 
             {skillForm.hasCertificate && (
               <div className="mt-3 space-y-3">
-                <Input label="Título del Certificado" value={skillForm.certTitle} onChange={e => setSkillForm({...skillForm, certTitle: e.target.value})} />
+
+                {/* Grid de certificados ya cargados, cada uno con su título */}
+                {skillForm.certImages.length > 0 && (
+                  <div className="flex flex-wrap gap-3">
+                    {skillForm.certImages.map((img, idx) => (
+                      <div key={idx} className="relative group/cert flex flex-col items-center gap-1" style={{ width: '90px' }}>
+                        {/* Thumbnail */}
+                        <div className="relative">
+                          {img.endsWith('.pdf') || img.startsWith('data:application/pdf') ? (
+                            <div className={`w-16 h-20 rounded-lg border flex items-center justify-center text-xs font-bold ${isDark ? 'bg-slate-800 border-slate-600 text-slate-300' : 'bg-slate-100 border-slate-300 text-slate-600'}`}>
+                              📄 PDF
+                            </div>
+                          ) : (
+                            <img src={img} alt={`Cert ${idx + 1}`} className="w-16 h-20 object-cover rounded-lg border" />
+                          )}
+                          {/* Botón eliminar */}
+                          <button 
+                            onClick={() => {
+                              const isSaved = img.startsWith('http');
+                              let newImages = skillForm.certImages.filter((_, i) => i !== idx);
+                              let newPubIds = [...skillForm.certPublicIds];
+                              let newFiles = [...skillForm.certFiles];
+                              let newTitles = skillForm.certTitles.filter((_, i) => i !== idx);
+
+                              if (isSaved) {
+                                const savedIndex = skillForm.certImages.slice(0, idx).filter(u => u.startsWith('http')).length;
+                                if (newPubIds[savedIndex]) {
+                                  deleteImage(newPubIds[savedIndex]);
+                                }
+                                newPubIds.splice(savedIndex, 1);
+                              } else {
+                                const previewIndex = skillForm.certImages.slice(0, idx).filter(u => !u.startsWith('http')).length;
+                                newFiles.splice(previewIndex, 1);
+                              }
+
+                              setSkillForm({...skillForm, certImages: newImages, certPublicIds: newPubIds, certFiles: newFiles, certTitles: newTitles});
+                            }}
+                            className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-red-500 text-white text-xs flex items-center justify-center opacity-0 group-hover/cert:opacity-100 transition-all shadow"
+                          >×</button>
+                        </div>
+
+                        {/* Input de título por certificado */}
+                        <input
+                          type="text"
+                          placeholder="Título"
+                          value={skillForm.certTitles[idx] || ''}
+                          onChange={(e) => {
+                            const newTitles = [...skillForm.certTitles];
+                            newTitles[idx] = e.target.value;
+                            setSkillForm({...skillForm, certTitles: newTitles});
+                          }}
+                          className={`w-full text-center rounded px-1 py-0.5 outline-none border text-[10px] ${
+                            isDark 
+                              ? 'bg-slate-800 border-slate-600 text-white placeholder-slate-500' 
+                              : 'bg-white border-slate-300 text-slate-700 placeholder-slate-400'
+                          }`}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Botón para agregar más certificados */}
                 <div className="border-2 border-dashed rounded-lg p-3 text-center">
-                  <input type="file" accept="image/*,.pdf" onChange={(e) => handleFileChange(e.target.files[0], 'certImage')} className="hidden" id="cert-up" />
-                  <label htmlFor="cert-up" className="cursor-pointer">
-                    {skillForm.certImage ? (
-                      skillForm.certImage.includes('pdf') ? (
-                        <div className="text-xs font-bold">📄 PDF Cargado</div>
-                      ) : (
-                        <img src={skillForm.certImage} className="h-16 mx-auto rounded" alt="Cert" />
-                      )
-                    ) : <span className="text-xs">📄 Subir Certificado</span>}
+                  <input 
+                    type="file" accept="image/*,.pdf" multiple
+                    onChange={(e) => {
+                      const files = Array.from(e.target.files || []);
+                      if (files.length === 0) return;
+                      const newFiles = [...skillForm.certFiles, ...files];
+                      const readers = files.map(file => new Promise((resolve) => {
+                        const reader = new FileReader();
+                        reader.onloadend = () => resolve(reader.result);
+                        reader.readAsDataURL(file);
+                      }));
+                      Promise.all(readers).then(results => {
+                        setSkillForm(prev => ({
+                          ...prev,
+                          certFiles: newFiles,
+                          certImages: [...prev.certImages, ...results],
+                          certTitles: [...prev.certTitles, ...results.map(() => '')]
+                        }));
+                      });
+                    }}
+                    className="hidden" id="cert-up-multi" 
+                  />
+                  <label htmlFor="cert-up-multi" className="cursor-pointer">
+                    <span className="text-xs text-[#0078C8] font-semibold">+ Agregar certificado(s)</span>
                   </label>
                 </div>
               </div>
@@ -931,15 +1155,101 @@ export default function Habilidades({ data, onUpdate }) {
         </div>
       </Modal>
 
-      <Modal isOpen={certificateViewModal.isOpen} onClose={certificateViewModal.close} title={selectedCert?.certTitle || selectedCert?.name} hideClose centered>
-        <div className="flex flex-col items-center w-full">
-          {selectedCert?.certImage?.includes('.pdf') ? (
-            <iframe src={selectedCert.certImage} className="w-full h-[70vh] rounded-lg" title="PDF"></iframe>
-          ) : (
-            <img src={selectedCert?.certImage} className="w-full h-auto max-h-[70vh] object-contain rounded-lg shadow-xl" alt="Certificado" />
-          )}
-          <Button onClick={certificateViewModal.close} className="mt-5 w-full">Cerrar</Button>
-        </div>
+      {/* MODAL VISTA CERTIFICADO */}
+      <Modal
+        isOpen={certificateViewModal.isOpen}
+        onClose={certificateViewModal.close}
+        centered
+        maxWidth="max-w-[90vw]"
+        hideHeader
+      >
+        {selectedCert && (() => {
+          const certs = selectedCert?.certImages?.length ? selectedCert.certImages : (selectedCert?.certImage ? [selectedCert.certImage] : []);
+          const titles = selectedCert?.certTitles?.length ? selectedCert.certTitles : (selectedCert?.certTitle ? certs.map(() => selectedCert.certTitle) : []);
+          const currentCert = certs[certViewIndex] || '';
+          const currentTitle = titles[certViewIndex] || selectedCert?.certTitle || selectedCert?.name || '';
+          const hasMultiple = certs.length > 1;
+
+          const isPdf = currentCert.endsWith('.pdf') || currentCert.startsWith('data:application/pdf');
+          const isCloudinaryPdf = isPdf && currentCert.startsWith('http');
+          const displaySrc = isCloudinaryPdf
+            ? currentCert.replace(/\.pdf(\?.*)?$/, '.jpg$1')
+            : currentCert;
+          const useIframe = isPdf && !isCloudinaryPdf;
+
+          return (
+            <div className="relative w-full h-[80vh] flex flex-col items-center">
+              <button 
+                onClick={certificateViewModal.close}
+                className="absolute top-0 -right-2 md:right-2 p-2 rounded-full transition-all duration-300 z-[70] shadow-xl backdrop-blur-md bg-red-500 text-white"
+              >
+                <svg className="w-6 h-6 sm:w-7 sm:h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+
+              <div className="mb-2 text-center px-4">
+                <h3 className={`text-xl sm:text-2xl md:text-3xl font-black ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                  {currentTitle}
+                </h3>
+              </div>
+
+              <div 
+                className="relative flex-1 w-full bg-black/5 rounded-3xl overflow-hidden flex items-center justify-center"
+                onWheel={e => {
+                  e.preventDefault();
+                  setCertZoom(prev => {
+                    const next = prev + (e.deltaY < 0 ? 0.1 : -0.1);
+                    return Math.min(5, Math.max(1, parseFloat(next.toFixed(2))));
+                  });
+                }}
+              >
+                {useIframe ? (
+                  <iframe 
+                    src={currentCert} 
+                    title="PDF"
+                    style={{ width: '100%', height: '100%', border: 'none' }}
+                  />
+                ) : (
+                  <img 
+                    src={displaySrc} 
+                    alt="Certificado" 
+                    className="select-none"
+                    style={{ 
+                      maxWidth: '100%', 
+                      maxHeight: '100%', 
+                      objectFit: 'contain',
+                      transform: `scale(${certZoom})`,
+                      transition: 'transform 0.15s ease-out'
+                    }}
+                    draggable={false}
+                  />
+                )}
+
+                {hasMultiple && (
+                  <>
+                    <button
+                      onClick={() => { setCertViewIndex(prev => (prev - 1 + certs.length) % certs.length); setCertZoom(1); }}
+                      className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 bg-black/30 hover:bg-[#0078C8] text-white w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center transition-all z-50 backdrop-blur-md"
+                    >
+                      <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M15 19l-7-7 7-7" />
+                      </svg>
+                    </button>
+                    <button
+                      onClick={() => { setCertViewIndex(prev => (prev + 1) % certs.length); setCertZoom(1); }}
+                      className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 bg-black/30 hover:bg-[#0078C8] text-white w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center transition-all z-50 backdrop-blur-md"
+                    >
+                      <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M9 5l7 7-7 7" />
+                      </svg>
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+          );
+        })()}
       </Modal>
     </SectionWrapper>
   );
