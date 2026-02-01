@@ -9,6 +9,12 @@ import Textarea from '../components/ui/Textarea';
 import Button from '../components/ui/Button';
 import SectionWrapper from '../components/SectionWrapper';
 
+// Función para detectar si una URL es un video
+const isVideo = (url) => {
+  if (!url) return false;
+  return url.startsWith('data:video/') || /\.(mp4|webm|mov|avi)$/i.test(url) || url.includes('/video/upload/');
+};
+
 export default function Proyectos({ projects, onUpdate }) {
   const { isDark, lang, isAdmin } = useApp();
   const addModal = useModal();
@@ -23,6 +29,7 @@ export default function Proyectos({ projects, onUpdate }) {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1024);
   const [editingRowIndex, setEditingRowIndex] = useState(null);
+  const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0, message: '' });
   
   const [formData, setFormData] = useState({ 
     title: '', 
@@ -104,12 +111,19 @@ const cardsPerRow = isMobile ? 1 : isSmall ? 2 : isTablet ? 3 : isMedium ? 4 : 5
 
   const handleImageChange = (e) => {
     const files = Array.from(e.target.files);
-    const validFiles = files.filter(file => file.type.startsWith('image/'));
+    // Aceptar imágenes y videos
+    const validFiles = files.filter(file => file.type.startsWith('image/') || file.type.startsWith('video/'));
     
     if (validFiles.length === 0) return;
     
     const newImageFiles = [...formData.imageFiles, ...validFiles];
-    setFormData(prev => ({ ...prev, imageFiles: newImageFiles }));
+    const newPublicIds = [...formData.imagePublicIds, ...validFiles.map(() => null)];
+    
+    setFormData(prev => ({ 
+      ...prev, 
+      imageFiles: newImageFiles,
+      imagePublicIds: newPublicIds
+    }));
     
     validFiles.forEach(file => {
       const reader = new FileReader();
@@ -142,28 +156,6 @@ const cardsPerRow = isMobile ? 1 : isSmall ? 2 : isTablet ? 3 : isMedium ? 4 : 5
     }));
   };
 
-  const moveImage = (index, direction) => {
-    const newIndex = direction === 'up' ? index - 1 : index + 1;
-    
-    if (newIndex < 0 || newIndex >= formData.images.length) return;
-    
-    const newImages = [...formData.images];
-    const newImageFiles = [...formData.imageFiles];
-    const newImagePublicIds = [...formData.imagePublicIds];
-    
-    // Intercambiar posiciones
-    [newImages[index], newImages[newIndex]] = [newImages[newIndex], newImages[index]];
-    [newImageFiles[index], newImageFiles[newIndex]] = [newImageFiles[newIndex], newImageFiles[index]];
-    [newImagePublicIds[index], newImagePublicIds[newIndex]] = [newImagePublicIds[newIndex], newImagePublicIds[index]];
-    
-    setFormData(prev => ({
-      ...prev,
-      images: newImages,
-      imageFiles: newImageFiles,
-      imagePublicIds: newImagePublicIds
-    }));
-  };
-
   const getAvailableOrdersForRow = (rowNumber) => {
     const projectsInRow = projectsList.filter(p => 
       (p.row || 1) === rowNumber && (editingId ? p.id !== editingId : true)
@@ -186,11 +178,12 @@ const cardsPerRow = isMobile ? 1 : isSmall ? 2 : isTablet ? 3 : isMedium ? 4 : 5
 
   const handleEdit = (project) => {
     setEditingId(project.id);
+    const existingImages = project.images || (project.image ? [project.image] : []);
     setFormData({ 
       title: project.title || '', 
       description: project.description || '', 
-      images: project.images || (project.image ? [project.image] : []),
-      imageFiles: [],
+      images: existingImages,
+      imageFiles: existingImages.map(() => null), // null para cada imagen existente
       imagePublicIds: project.imagePublicIds || (project.imagePublicId ? [project.imagePublicId] : []),
       demo: project.demo || '',
       row: project.row || 1,
@@ -217,28 +210,79 @@ const cardsPerRow = isMobile ? 1 : isSmall ? 2 : isTablet ? 3 : isMedium ? 4 : 5
 
   const handleSave = async () => {
     try {
-      const existingImages = formData.images.filter((img, idx) => 
-        formData.imagePublicIds[idx] && !img.startsWith('data:')
-      );
-      const existingPublicIds = formData.imagePublicIds.filter(id => id);
+      console.log('📦 FormData antes de guardar:', formData);
       
-      let imageUrls = [...existingImages];
-      let imagePublicIds = [...existingPublicIds];
+      // Contar cuántos archivos nuevos hay que subir
+      const newFilesCount = formData.images.filter(img => img.startsWith('data:')).length;
+      let uploadedCount = 0;
       
-      if (formData.imageFiles.length > 0) {
-        for (const file of formData.imageFiles) {
-          const result = await uploadImage(file, 'portfolio/projects');
+      setUploadProgress({ current: 0, total: newFilesCount, message: 'Preparando...' });
+      
+      // Separar imágenes existentes (ya subidas) de nuevas (data URLs)
+      let imageUrls = [];
+      let imagePublicIds = [];
+      
+      // Primero, agregar las imágenes que ya estaban subidas
+      for (let i = 0; i < formData.images.length; i++) {
+        const img = formData.images[i];
+        const publicId = formData.imagePublicIds[i];
+        
+        // Si la imagen NO empieza con 'data:', ya está subida
+        if (!img.startsWith('data:')) {
+          imageUrls.push(img);
+          imagePublicIds.push(publicId);
+          console.log(`✅ Imagen existente ${i}:`, img.substring(0, 50), publicId);
+        }
+      }
+      
+      // Ahora subir los archivos nuevos (los que tienen data: URLs)
+      for (let i = 0; i < formData.images.length; i++) {
+        const img = formData.images[i];
+        const file = formData.imageFiles[i];
+        
+        // Si empieza con 'data:', es un archivo nuevo que hay que subir
+        if (img.startsWith('data:') && file) {
+          uploadedCount++;
+          const fileType = file.type.startsWith('video/') ? 'video' : 'imagen';
+          const fileSize = (file.size / (1024 * 1024)).toFixed(2); // MB
+          
+          setUploadProgress({ 
+            current: uploadedCount, 
+            total: newFilesCount, 
+            message: `Subiendo ${fileType} ${uploadedCount}/${newFilesCount} (${fileSize}MB) - 0%`,
+            percent: 0
+          });
+          
+          console.log(`📤 Subiendo archivo nuevo ${i}:`, file.name, file.type);
+          
+          // Usar callback de progreso
+          const result = await uploadImage(file, 'portfolio/projects', (percent) => {
+            setUploadProgress({ 
+              current: uploadedCount, 
+              total: newFilesCount, 
+              message: `Subiendo ${fileType} ${uploadedCount}/${newFilesCount} (${fileSize}MB) - ${percent}%`,
+              percent: percent
+            });
+          });
+          
+          console.log(`✅ Resultado de subida ${i}:`, result);
           imageUrls.push(result.secure_url);
           imagePublicIds.push(result.public_id);
         }
       }
 
+      setUploadProgress({ current: newFilesCount, total: newFilesCount, message: 'Guardando proyecto...' });
+
+      console.log('📋 URLs finales:', imageUrls);
+      console.log('📋 PublicIds finales:', imagePublicIds);
+
+      // Eliminar imágenes viejas que ya no están
       if (editingId) {
         const oldProject = projectsList.find(p => p.id === editingId);
         const oldIds = oldProject?.imagePublicIds || (oldProject?.imagePublicId ? [oldProject.imagePublicId] : []);
         
         for (const oldId of oldIds) {
-          if (!imagePublicIds.includes(oldId)) {
+          if (oldId && !imagePublicIds.includes(oldId)) {
             await deleteImage(oldId);
           }
         }
@@ -249,48 +293,43 @@ const cardsPerRow = isMobile ? 1 : isSmall ? 2 : isTablet ? 3 : isMedium ? 4 : 5
         ? parseInt(formData.order)
         : getRandomUnusedOrderForRow(formData.row);
 
+      const projectData = {
+        title: formData.title, 
+        description: formData.description, 
+        images: imageUrls,
+        imagePublicIds: imagePublicIds,
+        image: imageUrls[0],
+        imagePublicId: imagePublicIds[0],
+        demo: formData.demo, 
+        titleEN: tEN, 
+        descriptionEN: dEN,
+        row: formData.row,
+        order: finalOrder
+      };
+
+      console.log('💾 Datos del proyecto a guardar:', projectData);
+
       let updatedProjects;
       if (editingId) {
         updatedProjects = projectsList.map(p => 
           p.id === editingId 
-            ? { 
-                ...p, 
-                title: formData.title, 
-                description: formData.description, 
-                images: imageUrls,
-                imagePublicIds: imagePublicIds,
-                image: imageUrls[0],
-                imagePublicId: imagePublicIds[0],
-                demo: formData.demo, 
-                titleEN: tEN, 
-                descriptionEN: dEN,
-                row: formData.row,
-                order: finalOrder
-              }
+            ? { ...p, ...projectData }
             : p
         );
       } else {
         updatedProjects = [...projectsList, { 
-          title: formData.title, 
-          description: formData.description, 
-          images: imageUrls,
-          imagePublicIds: imagePublicIds,
-          image: imageUrls[0],
-          imagePublicId: imagePublicIds[0],
-          demo: formData.demo, 
-          titleEN: tEN, 
-          descriptionEN: dEN, 
-          id: Date.now().toString(),
-          row: formData.row,
-          order: finalOrder
+          ...projectData,
+          id: Date.now().toString()
         }];
       }
 
       await onUpdate({ list: updatedProjects, header: headerData });
+      setUploadProgress({ current: 0, total: 0, message: '' });
       addModal.close();
     } catch (error) {
       console.error(error);
       alert('Error al guardar el proyecto');
+      setUploadProgress({ current: 0, total: 0, message: '' });
     }
   };
 
@@ -521,71 +560,35 @@ const cardsPerRow = isMobile ? 1 : isSmall ? 2 : isTablet ? 3 : isMedium ? 4 : 5
           />
           <div className="space-y-3">
             <label className="text-[10px] font-black uppercase tracking-widest text-[#0078C8]">
-              Imágenes del Proyecto
+              Imágenes y Videos del Proyecto
             </label>
             <div className={`border-2 border-dashed rounded-xl p-4 text-center cursor-pointer transition-all ${
               isDark ? 'border-white/10 hover:border-[#0078C8]/40 bg-white/5' : 'border-slate-200 hover:border-[#0078C8]/40 bg-slate-50'
             }`}>
-              <input type="file" accept="image/*" multiple onChange={handleImageChange} className="hidden" id="project-images" />
+              <input type="file" accept="image/*,video/*" multiple onChange={handleImageChange} className="hidden" id="project-images" />
               <label htmlFor="project-images" className="cursor-pointer">
                 <div className="py-4">
                   <svg className={`w-10 h-10 mx-auto mb-2 ${isDark ? 'text-white/40' : 'text-slate-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                   </svg>
-                  <p className="text-xs">Click para seleccionar imágenes</p>
+                  <p className="text-xs">Click para seleccionar imágenes o videos</p>
+                  <p className={`text-[10px] mt-1 ${isDark ? 'text-white/30' : 'text-slate-400'}`}>MP4, WebM, MOV, JPG, PNG, etc.</p>
                 </div>
               </label>
             </div>
             {formData.images.length > 0 && (
               <div className="grid grid-cols-3 gap-2 mt-3">
-                {formData.images.map((img, idx) => (
+                {formData.images.map((media, idx) => (
                   <div key={idx} className="relative group">
-                    <img src={img} alt="" className="w-full h-20 object-cover rounded-lg border border-[#0078C8]/30" />
-                    
-                    {/* Badge de posición */}
-                    <div className="absolute top-1 left-1 bg-[#0078C8] text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center">
-                      {idx + 1}
-                    </div>
-                    
-                    {/* Botones de control */}
-                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center gap-1">
-                      {/* Mover arriba */}
-                      {idx > 0 && (
-                        <button 
-                          onClick={() => moveImage(idx, 'up')} 
-                          className="bg-blue-500 hover:bg-blue-600 text-white rounded-full w-6 h-6 flex items-center justify-center transition-colors"
-                          title="Mover arriba"
-                        >
-                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="3">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
-                          </svg>
-                        </button>
-                      )}
-                      
-                      {/* Mover abajo */}
-                      {idx < formData.images.length - 1 && (
-                        <button 
-                          onClick={() => moveImage(idx, 'down')} 
-                          className="bg-blue-500 hover:bg-blue-600 text-white rounded-full w-6 h-6 flex items-center justify-center transition-colors"
-                          title="Mover abajo"
-                        >
-                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="3">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                          </svg>
-                        </button>
-                      )}
-                      
-                      {/* Eliminar */}
-                      <button 
-                        onClick={() => removeImage(idx)} 
-                        className="bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center transition-colors"
-                        title="Eliminar"
-                      >
-                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="3">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                      </button>
-                    </div>
+                    {isVideo(media) ? (
+                      <video src={media} className="w-full h-20 object-cover rounded-lg border border-[#0078C8]/30" muted />
+                    ) : (
+                      <img src={media} alt="" className="w-full h-20 object-cover rounded-lg border border-[#0078C8]/30" />
+                    )}
+                    <button onClick={() => removeImage(idx)} className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center">×</button>
+                    {isVideo(media) && (
+                      <div className="absolute bottom-1 left-1 bg-purple-500 text-white text-[8px] px-1.5 py-0.5 rounded font-bold">VIDEO</div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -643,6 +646,41 @@ const cardsPerRow = isMobile ? 1 : isSmall ? 2 : isTablet ? 3 : isMedium ? 4 : 5
           </div>
 
           <Input label="URL del Demo" value={formData.demo} onChange={(e) => setFormData({...formData, demo: e.target.value})} placeholder="https://..." />
+          
+          {/* Barra de progreso */}
+          {uploadProgress.total > 0 && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <span className={`font-medium ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+                  {uploadProgress.message}
+                </span>
+              </div>
+              <div className={`w-full h-3 rounded-full overflow-hidden ${
+                isDark ? 'bg-slate-700' : 'bg-slate-200'
+              }`}>
+                <div 
+                  className="h-full bg-gradient-to-r from-[#0078C8] to-[#00A8E8] transition-all duration-300 ease-out relative overflow-hidden"
+                  style={{ 
+                    width: `${uploadProgress.percent !== undefined ? uploadProgress.percent : (uploadProgress.current / uploadProgress.total) * 100}%` 
+                  }}
+                >
+                  {/* Animación de brillo */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shimmer" 
+                       style={{ animation: 'shimmer 2s infinite' }} />
+                </div>
+              </div>
+              {/* Progreso global */}
+              <div className="flex items-center justify-between text-xs">
+                <span className={isDark ? 'text-slate-400' : 'text-slate-500'}>
+                  Archivo {uploadProgress.current} de {uploadProgress.total}
+                </span>
+                <span className={`font-bold ${isDark ? 'text-[#0078C8]' : 'text-[#0078C8]'}`}>
+                  Total: {Math.round(((uploadProgress.current - 1) / uploadProgress.total + (uploadProgress.percent || 0) / (100 * uploadProgress.total)) * 100)}%
+                </span>
+              </div>
+            </div>
+          )}
+          
           <Button onClick={handleSave} disabled={uploading} className="w-full mt-6">
             {uploading ? 'GUARDANDO...' : 'GUARDAR PROYECTO'}
           </Button>
@@ -675,11 +713,20 @@ const cardsPerRow = isMobile ? 1 : isSmall ? 2 : isTablet ? 3 : isMedium ? 4 : 5
             </div>
 
             <div className="relative flex-1 w-full bg-black/5 rounded-3xl overflow-hidden flex items-center justify-center">
-              <img 
-                src={(selectedProject.images && selectedProject.images.length > 0) ? selectedProject.images[currentImageIndex] : selectedProject.image} 
-                alt="Project Gallery"
-                className="max-w-full max-h-full object-contain select-none"
-              />
+              {isVideo((selectedProject.images && selectedProject.images.length > 0) ? selectedProject.images[currentImageIndex] : selectedProject.image) ? (
+                <video 
+                  src={(selectedProject.images && selectedProject.images.length > 0) ? selectedProject.images[currentImageIndex] : selectedProject.image}
+                  controls
+                  autoPlay
+                  className="max-w-full max-h-full object-contain select-none"
+                />
+              ) : (
+                <img 
+                  src={(selectedProject.images && selectedProject.images.length > 0) ? selectedProject.images[currentImageIndex] : selectedProject.image} 
+                  alt="Project Gallery"
+                  className="max-w-full max-h-full object-contain select-none"
+                />
+              )}
               
               {(selectedProject.images?.length > 1) && (
                 <>
@@ -1029,6 +1076,9 @@ function ProjectCard({ project, isDark, lang, isAdmin, onEdit, onDelete, onImage
     setCurrentImgIndex((prev) => (prev - 1 + images.length) % images.length);
   };
 
+  const currentMedia = images[currentImgIndex];
+  const isCurrentVideo = isVideo(currentMedia);
+
   return (
     <div className="group relative h-full max-h-[480px] sm:max-h-[540px] flex flex-col">
       <div className={`relative h-full flex flex-col rounded-3xl border overflow-hidden transition-all duration-700 ${
@@ -1038,17 +1088,36 @@ function ProjectCard({ project, isDark, lang, isAdmin, onEdit, onDelete, onImage
       }`}>
         
         <div className="relative overflow-hidden aspect-[16/9] flex-shrink-0 cursor-pointer" onClick={() => onImageClick(currentImgIndex)}>
-          {images[currentImgIndex] && (
-            <img 
-              src={images[currentImgIndex]} 
-              alt={project.title} 
+          {isCurrentVideo ? (
+            <video 
+              src={currentMedia}
+              muted
+              loop
+              playsInline
               className="w-full h-full object-cover transition-all duration-1000 group-hover:scale-110"
             />
+          ) : (
+            currentMedia && (
+              <img 
+                src={currentMedia} 
+                alt={project.title} 
+                className="w-full h-full object-cover transition-all duration-1000 group-hover:scale-110"
+              />
+            )
           )}
           
           <div className={`absolute inset-0 bg-gradient-to-t transition-opacity duration-700 ${
             isDark ? 'from-[#0F172A] via-[#0F172A]/60 to-transparent opacity-60' : 'from-white via-white/60 to-transparent opacity-40'
           }`} />
+
+          {isCurrentVideo && (
+            <div className="absolute top-3 right-3 bg-purple-500 text-white px-2 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1">
+              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />
+              </svg>
+              VIDEO
+            </div>
+          )}
 
           {hasMultipleImages && (
             <div className="opacity-0 group-hover:opacity-100 transition-opacity">
