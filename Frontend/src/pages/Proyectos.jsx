@@ -39,12 +39,16 @@ export default function Proyectos({ projects, onUpdate }) {
     imagePublicIds: [],
     demo: '',
     row: 1,
-    order: null 
+    order: null,
+    technologies: [],
+    technologyNames: []
   });
   
   const [headerData, setHeaderData] = useState({ 
     title: 'Proyectos',
     titleEN: 'Projects',
+    description: '',
+    descriptionEN: '',
     rows: 1,
     rowTitles: {} // { 1: 'Título Fila 1', 2: 'Título Fila 2', ... }
   });
@@ -74,8 +78,8 @@ export default function Proyectos({ projects, onUpdate }) {
   const projectsList = Array.isArray(projects?.list || projects) ? (projects?.list || projects) : [];
   
 const isMobile = windowWidth < 640;
-const isSmall = windowWidth >= 640 && windowWidth < 768;
-const isTablet = windowWidth >= 768 && windowWidth < 1280;
+const isSmall = windowWidth >= 640 && windowWidth < 1000;
+const isTablet = windowWidth >= 1000 && windowWidth < 1280;
 const isMedium = windowWidth >= 1280 && windowWidth < 1536;
 const cardsPerRow = isMobile ? 1 : isSmall ? 2 : isTablet ? 3 : isMedium ? 4 : 5;
 
@@ -156,6 +160,51 @@ const cardsPerRow = isMobile ? 1 : isSmall ? 2 : isTablet ? 3 : isMedium ? 4 : 5
     }));
   };
 
+  // Funciones para manejar tecnologías
+  const handleTechnologyChange = (e) => {
+    const files = Array.from(e.target.files);
+    const validFiles = files.filter(file => file.type.startsWith('image/'));
+    
+    if (validFiles.length === 0) return;
+    
+    validFiles.forEach(file => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormData(prev => ({
+          ...prev,
+          technologies: [...prev.technologies, reader.result],
+          technologyNames: [...prev.technologyNames, file.name.replace(/\.[^/.]+$/, '')]
+        }));
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleTechnologyUrlAdd = (url, name) => {
+    if (!url.trim()) return;
+    
+    setFormData(prev => ({
+      ...prev,
+      technologies: [...prev.technologies, url],
+      technologyNames: [...prev.technologyNames, name || '']
+    }));
+  };
+
+  const removeTechnology = (index) => {
+    setFormData(prev => ({
+      ...prev,
+      technologies: prev.technologies.filter((_, i) => i !== index),
+      technologyNames: prev.technologyNames.filter((_, i) => i !== index)
+    }));
+  };
+
+  const updateTechnologyName = (index, newName) => {
+    setFormData(prev => ({
+      ...prev,
+      technologyNames: prev.technologyNames.map((name, i) => i === index ? newName : name)
+    }));
+  };
+
   const getAvailableOrdersForRow = (rowNumber) => {
     const projectsInRow = projectsList.filter(p => 
       (p.row || 1) === rowNumber && (editingId ? p.id !== editingId : true)
@@ -187,7 +236,9 @@ const cardsPerRow = isMobile ? 1 : isSmall ? 2 : isTablet ? 3 : isMedium ? 4 : 5
       imagePublicIds: project.imagePublicIds || (project.imagePublicId ? [project.imagePublicId] : []),
       demo: project.demo || '',
       row: project.row || 1,
-      order: project.order !== null && project.order !== undefined ? project.order : null
+      order: project.order !== null && project.order !== undefined ? project.order : null,
+      technologies: project.technologies || [],
+      technologyNames: project.technologyNames || []
     });
     addModal.open();
   };
@@ -203,7 +254,9 @@ const cardsPerRow = isMobile ? 1 : isSmall ? 2 : isTablet ? 3 : isMedium ? 4 : 5
       imagePublicIds: [],
       demo: '',
       row: defaultRow,
-      order: getRandomUnusedOrderForRow(defaultRow)
+      order: getRandomUnusedOrderForRow(defaultRow),
+      technologies: [],
+      technologyNames: []
     });
     addModal.open();
   };
@@ -304,7 +357,9 @@ const cardsPerRow = isMobile ? 1 : isSmall ? 2 : isTablet ? 3 : isMedium ? 4 : 5
         titleEN: tEN, 
         descriptionEN: dEN,
         row: formData.row,
-        order: finalOrder
+        order: finalOrder,
+        technologies: formData.technologies,
+        technologyNames: formData.technologyNames
       };
 
       console.log('💾 Datos del proyecto a guardar:', projectData);
@@ -351,8 +406,21 @@ const cardsPerRow = isMobile ? 1 : isSmall ? 2 : isTablet ? 3 : isMedium ? 4 : 5
   };
 
   const handleSaveHeader = async () => {
-    const [titleEN] = await translateMultiple([headerData.title]);
-    const updatedHeader = { ...headerData, titleEN };
+    const textsToTranslate = [headerData.title];
+    
+    // Solo traducir la descripción si existe contenido
+    if (headerData.description && headerData.description.trim()) {
+      textsToTranslate.push(headerData.description);
+    }
+    
+    const translations = await translateMultiple(textsToTranslate);
+    
+    const updatedHeader = { 
+      ...headerData, 
+      titleEN: translations[0],
+      descriptionEN: translations.length > 1 ? translations[1] : ''
+    };
+    
     setHeaderData(updatedHeader);
     await onUpdate({ list: projectsList, header: updatedHeader });
     editHeaderModal.close();
@@ -431,7 +499,9 @@ const cardsPerRow = isMobile ? 1 : isSmall ? 2 : isTablet ? 3 : isMedium ? 4 : 5
       <div className="relative w-full max-w-[1800px] mx-auto px-4 sm:px-6 md:px-12 lg:px-20 z-10">
         
         {/* Header Section */}
-        <div className="flex items-center justify-center gap-4 sm:gap-6 mb-8 sm:mb-20 relative">
+        <div className={`flex items-center justify-center gap-4 sm:gap-6 relative ${
+          (headerData.description || headerData.descriptionEN) ? 'mb-8 sm:mb-8' : 'mb-8 sm:mb-20'
+        }`}>
           <div className="text-center">
             <h1 className={`text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black tracking-tighter leading-none mb-3 transition-all duration-700 ${
               isDark ? 'text-white' : 'text-slate-900'
@@ -439,6 +509,15 @@ const cardsPerRow = isMobile ? 1 : isSmall ? 2 : isTablet ? 3 : isMedium ? 4 : 5
               {lang === 'ES' ? headerData.title : (headerData.titleEN || headerData.title)}
             </h1>
             <div className={`h-[2px] w-32 sm:w-40 bg-gradient-to-r from-transparent via-[#0078C8] to-transparent mx-auto`} />
+            
+            {/* Descripción opcional */}
+            {(headerData.description || headerData.descriptionEN) && (
+              <p className={`mt-4 sm:mt-6 text-sm sm:text-base md:text-lg max-w-5xl mx-auto transition-all duration-700 ${
+                isDark ? 'text-slate-400' : 'text-slate-600'
+              }`}>
+                {lang === 'ES' ? headerData.description : (headerData.descriptionEN || headerData.description)}
+              </p>
+            )}
           </div>
           
           {isAdmin && (
@@ -505,6 +584,13 @@ const cardsPerRow = isMobile ? 1 : isSmall ? 2 : isTablet ? 3 : isMedium ? 4 : 5
             value={headerData.title}
             onChange={(e) => setHeaderData({...headerData, title: e.target.value})}
             helper="Se traducirá automáticamente al inglés"
+          />
+          <Textarea
+            label="Descripción (Español) - Opcional"
+            value={headerData.description || ''}
+            onChange={(e) => setHeaderData({...headerData, description: e.target.value})}
+            rows={3}
+            helper="Descripción que aparecerá debajo del título. Se traducirá automáticamente al inglés. Dejar vacío para no mostrar."
           />
           <div className="space-y-2">
             <label className="text-[10px] font-black uppercase tracking-widest text-[#0078C8]">
@@ -647,6 +733,111 @@ const cardsPerRow = isMobile ? 1 : isSmall ? 2 : isTablet ? 3 : isMedium ? 4 : 5
 
           <Input label="URL del Demo" value={formData.demo} onChange={(e) => setFormData({...formData, demo: e.target.value})} placeholder="https://..." />
           
+          {/* Tecnologías Utilizadas */}
+          <div className="space-y-3">
+            <label className="text-[10px] font-black uppercase tracking-widest text-[#0078C8]">
+              Tecnologías Utilizadas (Opcional)
+            </label>
+            
+            {/* Opción 1: Subir archivos */}
+            <div className={`border-2 border-dashed rounded-xl p-3 text-center cursor-pointer transition-all ${
+              isDark ? 'border-white/10 hover:border-[#0078C8]/40 bg-white/5' : 'border-slate-200 hover:border-[#0078C8]/40 bg-slate-50'
+            }`}>
+              <input 
+                type="file" 
+                accept="image/*" 
+                multiple 
+                onChange={handleTechnologyChange} 
+                className="hidden" 
+                id="tech-images" 
+              />
+              <label htmlFor="tech-images" className="cursor-pointer">
+                <div className="py-2">
+                  <svg className={`w-6 h-6 mx-auto mb-1.5 ${isDark ? 'text-white/40' : 'text-slate-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                  </svg>
+                  <p className="text-xs font-medium">Subir imágenes</p>
+                  <p className={`text-[9px] mt-0.5 ${isDark ? 'text-white/30' : 'text-slate-400'}`}>PNG, JPG, SVG</p>
+                </div>
+              </label>
+            </div>
+            
+            {/* Opción 2: Agregar por URL */}
+            <div className={`border-2 rounded-xl p-3 transition-all ${
+              isDark ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-slate-50'
+            }`}>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="URL de imagen de tecnología"
+                  id="tech-url-input"
+                  className={`flex-1 px-3 py-2 rounded-lg border text-xs transition-all ${
+                    isDark 
+                      ? 'bg-slate-800/50 border-slate-700 text-white placeholder-slate-500 focus:border-[#0078C8]' 
+                      : 'bg-white border-slate-200 text-slate-900 placeholder-slate-400 focus:border-[#0078C8]'
+                  }`}
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    const urlInput = document.getElementById('tech-url-input');
+                    if (urlInput.value.trim()) {
+                      handleTechnologyUrlAdd(urlInput.value, '');
+                      urlInput.value = '';
+                    }
+                  }}
+                  className={`px-3 py-2 rounded-lg font-bold text-xs uppercase tracking-wider transition-all whitespace-nowrap ${
+                    'bg-[#0078C8] text-white hover:bg-[#005A96]'
+                  }`}
+                >
+                  + URL
+                </button>
+              </div>
+            </div>
+
+            {/* Grid de tecnologías agregadas */}
+            {formData.technologies.length > 0 && (
+              <div className="space-y-2">
+                <div className={`text-[10px] font-medium ${isDark ? 'text-white/50' : 'text-slate-500'}`}>
+                  {formData.technologies.length} tecnología{formData.technologies.length !== 1 ? 's' : ''} agregada{formData.technologies.length !== 1 ? 's' : ''}
+                </div>
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+                  {formData.technologies.map((tech, idx) => (
+                    <div key={idx} className="relative">
+                      <div className={`relative rounded-lg p-2 border transition-all group ${
+                        isDark ? 'border-white/10 bg-white/5 hover:border-white/20' : 'border-slate-200 bg-white hover:border-slate-300'
+                      }`}>
+                        <img 
+                          src={tech} 
+                          alt="" 
+                          className="w-full h-14 object-contain"
+                        />
+                        <button 
+                          type="button"
+                          onClick={() => removeTechnology(idx)} 
+                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-xs font-bold shadow-lg"
+                        >
+                          ×
+                        </button>
+                      </div>
+                      <input 
+                        type="text"
+                        value={formData.technologyNames[idx] || ''}
+                        onChange={(e) => updateTechnologyName(idx, e.target.value)}
+                        placeholder="Nombre (opcional)"
+                        className={`mt-1.5 w-full px-2 py-1 text-[10px] text-center rounded border transition-all ${
+                          isDark 
+                            ? 'bg-slate-800/50 border-slate-700 text-white placeholder-slate-500 focus:border-[#0078C8]' 
+                            : 'bg-white border-slate-200 text-slate-900 placeholder-slate-400 focus:border-[#0078C8]'
+                        }`}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+          
           {/* Barra de progreso */}
           {uploadProgress.total > 0 && (
             <div className="space-y-2">
@@ -749,6 +940,29 @@ const cardsPerRow = isMobile ? 1 : isSmall ? 2 : isTablet ? 3 : isMedium ? 4 : 5
                 </>
               )}
             </div>
+
+            {/* Tecnologías - Diseño discreto con íconos a color */}
+            {selectedProject.technologies && selectedProject.technologies.length > 0 && (
+              <div className="mt-3 px-4 sm:px-6 pb-3 w-full">
+                <div className="flex flex-wrap gap-2.5 sm:gap-3 justify-center items-center max-w-xl mx-auto">
+                  {selectedProject.technologies.map((tech, idx) => (
+                    <div 
+                      key={idx} 
+                      className="transition-all duration-300 hover:scale-110"
+                      title={selectedProject.technologyNames?.[idx] || ''}
+                    >
+                      <div className="w-8 h-8 sm:w-10 sm:h-10 p-1.5">
+                        <img 
+                          src={tech} 
+                          alt={selectedProject.technologyNames?.[idx] || ''} 
+                          className="w-full h-full object-contain"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </Modal>
@@ -1105,10 +1319,6 @@ function ProjectCard({ project, isDark, lang, isAdmin, onEdit, onDelete, onImage
               />
             )
           )}
-          
-          <div className={`absolute inset-0 bg-gradient-to-t transition-opacity duration-700 ${
-            isDark ? 'from-[#0F172A] via-[#0F172A]/60 to-transparent opacity-60' : 'from-white via-white/60 to-transparent opacity-40'
-          }`} />
 
           {isCurrentVideo && (
             <div className="absolute top-3 right-3 bg-purple-500 text-white px-2 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1">

@@ -24,7 +24,9 @@ export default function Experiencia({ data, onUpdate }) {
   });
   const [headerData, setHeaderData] = useState({
     title: 'Experiencia',
-    titleEN: 'Experience'
+    titleEN: 'Experience',
+    description: '',
+    descriptionEN: ''
   });
 
   const experiences = data?.list || data || [];
@@ -84,6 +86,13 @@ export default function Experiencia({ data, onUpdate }) {
 
   // Usar las experiencias traducidas para mostrar
   const displayExperiences = lang === 'EN' ? translatedExperiences : experiences;
+
+  // Cargar headerData desde props
+  useEffect(() => {
+    if (data?.header) {
+      setHeaderData(data.header);
+    }
+  }, [data]);
 
   // Función para detectar si es "presente" o "actual"
   const isCurrentJob = (period) => {
@@ -213,9 +222,31 @@ export default function Experiencia({ data, onUpdate }) {
   };
 
   const handleSaveHeader = async () => {
-    const titleEN = await translate(headerData.title, { from: 'es', to: 'en' });
-    const updatedHeader = { ...headerData, titleEN };
-    await onUpdate({ list: experiences, header: updatedHeader });
+    try {
+      const textsToTranslate = [headerData.title];
+      
+      // Solo traducir la descripción si existe contenido
+      if (headerData.description && headerData.description.trim()) {
+        textsToTranslate.push(headerData.description);
+      }
+      
+      const titleEN = await translate(textsToTranslate[0], { from: "es", to: "en" });
+      let descriptionEN = '';
+      
+      if (textsToTranslate.length > 1) {
+        descriptionEN = await translate(textsToTranslate[1], { from: "es", to: "en" });
+      }
+      
+      const updatedHeader = {
+        ...headerData,
+        titleEN,
+        descriptionEN
+      };
+      
+      await onUpdate({ list: experiences, header: updatedHeader });
+    } catch (error) {
+      await onUpdate({ list: experiences, header: headerData });
+    }
     editHeaderModal.close();
   };
 
@@ -229,7 +260,9 @@ export default function Experiencia({ data, onUpdate }) {
       <div className="w-full max-w-[1600px] mx-auto px-10 sm:px-6 md:px-12 lg:px-20 relative z-10">
         
         {/* HEADER CENTRADO - MISMO TAMAÑO QUE HABILIDADES */}
-        <div className="flex items-center justify-center gap-4 sm:gap-6 mb-8 sm:mb-20 relative">
+        <div className={`flex items-center justify-center gap-4 sm:gap-6 relative ${
+          (headerData.description || headerData.descriptionEN) ? 'mb-8 sm:mb-8' : 'mb-8 sm:mb-20'
+        }`}>
           <div className="text-center">
             <h1 className={`text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black tracking-tighter leading-none mb-3 transition-all duration-700 ${
               isDark ? 'text-white' : 'text-slate-900'
@@ -237,6 +270,14 @@ export default function Experiencia({ data, onUpdate }) {
               {lang === 'ES' ? (data?.header?.title || 'Experiencia') : (data?.header?.titleEN || 'Experience')}
             </h1>
             <div className={`h-[2px] w-32 sm:w-40 bg-gradient-to-r from-transparent via-[#0078C8] to-transparent mx-auto`} />
+            
+            {(headerData.description || headerData.descriptionEN) && (
+              <p className={`mt-6 text-sm sm:text-base md:text-lg max-w-2xl mx-auto leading-relaxed transition-colors duration-300 ${
+                isDark ? 'text-slate-400' : 'text-slate-600'
+              }`}>
+                {lang === 'ES' ? headerData.description : (headerData.descriptionEN || headerData.description)}
+              </p>
+            )}
           </div>
           
           {isAdmin && (
@@ -373,13 +414,20 @@ export default function Experiencia({ data, onUpdate }) {
       </div>
 
       {/* MODALES */}
-      <Modal isOpen={editHeaderModal.isOpen} onClose={editHeaderModal.close} title="Editar Título">
+      <Modal isOpen={editHeaderModal.isOpen} onClose={editHeaderModal.close} title="Editar Configuración">
         <div className="space-y-6">
           <Input
             label="Título (Español)"
             value={headerData.title}
             onChange={(e) => setHeaderData({...headerData, title: e.target.value})}
             helper="Se traducirá automáticamente al inglés"
+          />
+          <Textarea
+            label="Descripción (Español) - Opcional"
+            value={headerData.description || ''}
+            onChange={(e) => setHeaderData({...headerData, description: e.target.value})}
+            rows={3}
+            helper="Descripción que aparecerá debajo del título. Se traducirá automáticamente al inglés. Dejar vacío para no mostrar."
           />
           <Button onClick={handleSaveHeader} className="w-full">Guardar</Button>
         </div>
