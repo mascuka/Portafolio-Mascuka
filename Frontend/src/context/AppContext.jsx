@@ -1,162 +1,133 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { auth } from '../lib/firebase';
-import { onAuthStateChanged, onIdTokenChanged } from 'firebase/auth';
+import { onAuthStateChanged } from 'firebase/auth';
+import { ADMIN_EMAIL, ADMIN_DETECTED_KEY, TIMEOUTS } from '../constants/config';
+
+/**
+ * CONTEXTO GLOBAL DE LA APLICACIÓN
+ * Maneja el estado global: tema, idioma, autenticación
+ */
 
 const AppContext = createContext();
 
-export const useApp = () => useContext(AppContext);
-
-const ADMIN_EMAIL = "mascuka410@gmail.com";
-const ADMIN_DETECTED_KEY = 'portfolio_admin_detected';
+export const useApp = () => {
+  const context = useContext(AppContext);
+  if (!context) {
+    throw new Error('useApp debe usarse dentro de AppProvider');
+  }
+  return context;
+};
 
 export const AppProvider = ({ children }) => {
+  // Estados globales
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isDark, setIsDark] = useState(true);
   const [lang, setLang] = useState('ES');
   
-  // Estado para saber si alguna vez te detectamos como admin
+  // Admin detection: true si alguna vez se logueó como admin
   const [isAdminDetected, setIsAdminDetected] = useState(() => {
     return localStorage.getItem(ADMIN_DETECTED_KEY) === 'true';
   });
 
-  // El isAdmin real (basado en la sesión actual de Firebase)
+  // isAdmin real: true solo si está logueado AHORA como admin
   const isAdmin = user?.email === ADMIN_EMAIL;
 
-  // VERIFICACIÓN AGRESIVA MÚLTIPLE
+  // 🔐 MANEJO DE AUTENTICACIÓN
   useEffect(() => {
-    console.log('🚀 AppContext iniciando - Verificaciones múltiples...');
-    
     let mounted = true;
-    
-    // Verificación 1: Usuario actual INMEDIATO
+
+    // Verificación inmediata del usuario actual
     const checkCurrentUser = () => {
       const currentUser = auth.currentUser;
-      console.log('1️⃣ Verificación inmediata - currentUser:', currentUser?.email || 'null');
-      
       if (currentUser && mounted) {
         setUser(currentUser);
         setLoading(false);
         
         if (currentUser.email === ADMIN_EMAIL) {
-          console.log('✅ ADMIN DETECTADO en verificación inmediata!');
           setIsAdminDetected(true);
           localStorage.setItem(ADMIN_DETECTED_KEY, 'true');
         }
       }
     };
-    
-    // Ejecutar inmediatamente
+
+    // Check inmediato
     checkCurrentUser();
-    
-    // Verificación 2: Re-verificar después de 500ms (por si Firebase está inicializando)
-    const timeoutCheck = setTimeout(() => {
-      console.log('2️⃣ Verificación retrasada (500ms)...');
-      checkCurrentUser();
-    }, 500);
-    
-    // Verificación 3: Listener estándar de cambios de auth
-    const unsubscribeAuth = onAuthStateChanged(auth, (newUser) => {
-      console.log('3️⃣ onAuthStateChanged disparado:', newUser?.email || 'null');
-      
+
+    // Check retrasado (por si Firebase está inicializando)
+    const timeoutCheck = setTimeout(checkCurrentUser, TIMEOUTS.authCheck);
+
+    // Listener principal de auth
+    const unsubscribe = onAuthStateChanged(auth, (newUser) => {
       if (!mounted) return;
       
       setUser(newUser);
       setLoading(false);
       
       if (newUser?.email === ADMIN_EMAIL) {
-        console.log('✅ Admin detectado en onAuthStateChanged!');
         setIsAdminDetected(true);
         localStorage.setItem(ADMIN_DETECTED_KEY, 'true');
       }
     });
-    
-    // Verificación 4: Listener de cambios de token (más sensible)
-    const unsubscribeToken = onIdTokenChanged(auth, (newUser) => {
-      console.log('4️⃣ onIdTokenChanged disparado:', newUser?.email || 'null');
-      
-      if (!mounted) return;
-      
-      if (newUser) {
-        setUser(newUser);
-        setLoading(false);
-        
-        if (newUser.email === ADMIN_EMAIL) {
-          console.log('✅ Admin detectado en onIdTokenChanged!');
-          setIsAdminDetected(true);
-          localStorage.setItem(ADMIN_DETECTED_KEY, 'true');
-        }
-      }
-    });
-    
-    // Verificación 5: Polling cada 2 segundos por 10 segundos
+
+    // Polling de respaldo (solo si no hay usuario después de 1 segundo)
     let pollCount = 0;
     const pollingInterval = setInterval(() => {
-      pollCount++;
-      console.log(`5️⃣ Polling #${pollCount} - Verificando auth.currentUser...`);
-      
-      const currentUser = auth.currentUser;
-      if (currentUser && mounted) {
-        console.log('✅ Usuario encontrado en polling:', currentUser.email);
-        setUser(currentUser);
-        setLoading(false);
-        
-        if (currentUser.email === ADMIN_EMAIL) {
-          console.log('✅ Admin detectado en polling!');
-          setIsAdminDetected(true);
-          localStorage.setItem(ADMIN_DETECTED_KEY, 'true');
-        }
-        
-        clearInterval(pollingInterval);
-      }
-      
-      // Detener después de 5 intentos (10 segundos)
-      if (pollCount >= 5) {
-        console.log('⏹️ Polling detenido después de 5 intentos');
+      if (!mounted || auth.currentUser || pollCount >= TIMEOUTS.authPollAttempts) {
         clearInterval(pollingInterval);
         if (mounted && !auth.currentUser) {
           setLoading(false);
         }
+        return;
       }
-    }, 2000);
+
+      pollCount++;
+      checkCurrentUser();
+    }, TIMEOUTS.authPollInterval);
 
     return () => {
       mounted = false;
       clearTimeout(timeoutCheck);
       clearInterval(pollingInterval);
-      unsubscribeAuth();
-      unsubscribeToken();
-      console.log('🧹 Limpiando listeners y timers');
+      unsubscribe();
     };
   }, []);
 
-  // Log continuo para debugging
-  useEffect(() => {
-    console.log('📊 Estado AppContext actualizado:', {
-      'auth.currentUser': auth.currentUser?.email || 'null',
-      'state.user': user?.email || 'null',
-      'isAdmin': isAdmin,
-      'isAdminDetected': isAdminDetected,
-      'loading': loading,
-      'localStorage': localStorage.getItem(ADMIN_DETECTED_KEY)
-    });
-  }, [user, isAdmin, isAdminDetected, loading]);
-
+  // 🎨 SINCRONIZAR TEMA CON DOM
   useEffect(() => {
     document.body.classList.toggle('light', !isDark);
   }, [isDark]);
 
+  // 📊 LOG DE DESARROLLO (solo en dev)
+  useEffect(() => {
+    if (import.meta.env.DEV) {
+      console.log('🔄 AppContext:', {
+        user: user?.email || 'null',
+        isAdmin,
+        isAdminDetected,
+        loading
+      });
+    }
+  }, [user, isAdmin, isAdminDetected, loading]);
+
+  const value = {
+    // Tema
+    isDark,
+    setIsDark,
+    
+    // Idioma
+    lang,
+    setLang,
+    
+    // Auth
+    user,
+    loading,
+    isAdmin,
+    isAdminDetected,
+  };
+
   return (
-    <AppContext.Provider value={{ 
-      isDark, 
-      setIsDark, 
-      lang, 
-      setLang, 
-      isAdmin,           // true solo si estás logueado ahora
-      isAdminDetected,   // true si alguna vez te logueaste como admin
-      user, 
-      loading 
-    }}>
+    <AppContext.Provider value={value}>
       {children}
     </AppContext.Provider>
   );

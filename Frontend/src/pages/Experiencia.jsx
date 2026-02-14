@@ -272,7 +272,7 @@ export default function Experiencia({ data, onUpdate }) {
             <div className={`h-[2px] w-32 sm:w-40 bg-gradient-to-r from-transparent via-[#0078C8] to-transparent mx-auto`} />
             
             {(headerData.description || headerData.descriptionEN) && (
-              <p className={`mt-6 text-sm sm:text-base md:text-lg max-w-2xl mx-auto leading-relaxed transition-colors duration-300 ${
+              <p className={`mt-6 text-sm sm:text-base md:text-lg max-w-5xl mx-auto leading-relaxed transition-colors duration-300 ${
                 isDark ? 'text-slate-400' : 'text-slate-600'
               }`}>
                 {lang === 'ES' ? headerData.description : (headerData.descriptionEN || headerData.description)}
@@ -339,7 +339,7 @@ export default function Experiencia({ data, onUpdate }) {
           {/* OTRAS EXPERIENCIAS - CARRUSEL SI HAY MÁS DE 1 */}
           {otherExperiences.length > 0 && !isTranslating && (
             <div className="relative">
-              <div className="overflow-hidden">
+              <div className="overflow-visible">
                 <div 
                   className={`transition-all duration-500 ${isTransitioning ? 'opacity-0 scale-95' : 'opacity-100 scale-100'}`}
                   style={{ minHeight: '200px' }}

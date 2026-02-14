@@ -1,21 +1,27 @@
 import { initializeApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider, setPersistence, browserLocalPersistence } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
+import { FIREBASE_CONFIG } from '../constants/config';
 
-const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID
-};
+/**
+ * INICIALIZACIÓN DE FIREBASE
+ * Configuración centralizada y persistencia habilitada
+ */
 
-const app = initializeApp(firebaseConfig);
+// Inicializar Firebase
+const app = initializeApp(FIREBASE_CONFIG);
+
+// Configurar Auth con persistencia
 export const auth = getAuth(app);
-
-// Esto es la clave: Firebase recordará quién eres al recargar
 setPersistence(auth, browserLocalPersistence);
 
+// Configurar Firestore
 export const db = getFirestore(app);
+
+// Proveedores de autenticación
 export const googleProvider = new GoogleAuthProvider();
+
+// Configurar el provider para forzar selección de cuenta
+googleProvider.setCustomParameters({
+  prompt: 'select_account'
+});

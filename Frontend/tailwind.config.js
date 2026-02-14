@@ -1,3 +1,5 @@
+import { COLORS } from './src/constants/colors';
+
 /** @type {import('tailwindcss').Config} */
 export default {
   content: [
@@ -7,8 +9,15 @@ export default {
   theme: {
     extend: {
       colors: {
-        'fondo': '#0B0E14', // El negro profundo de la imagen de Jacob
-        'celeste': '#00F2FF', // El celeste brillante para resaltar
+        // Usando las constantes centralizadas
+        'primary': COLORS.primary,
+        'primary-hover': COLORS.primaryHover,
+        'primary-light': COLORS.primaryLight,
+        'dark-bg': COLORS.darkBg,
+        'dark-bg-secondary': COLORS.darkBgSecondary,
+        'dark-bg-tertiary': COLORS.darkBgTertiary,
+        'light-bg': COLORS.lightBg,
+        'light-bg-secondary': COLORS.lightBgSecondary,
       }
     },
   },

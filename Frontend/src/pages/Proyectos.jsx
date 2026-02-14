@@ -27,7 +27,8 @@ export default function Proyectos({ projects, onUpdate }) {
   const [editingId, setEditingId] = useState(null);
   const [selectedProject, setSelectedProject] = useState(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1024);
+  const [techCarouselIndex, setTechCarouselIndex] = useState(0);
+  const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? document.documentElement.clientWidth : 1024);
   const [editingRowIndex, setEditingRowIndex] = useState(null);
   const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0, message: '' });
   
@@ -66,7 +67,7 @@ export default function Proyectos({ projects, onUpdate }) {
 
   useEffect(() => {
     const handleResize = () => {
-      setWindowWidth(window.innerWidth);
+      setWindowWidth(document.documentElement.clientWidth);
     };
 
     window.addEventListener('resize', handleResize);
@@ -112,6 +113,20 @@ const cardsPerRow = isMobile ? 1 : isSmall ? 2 : isTablet ? 3 : isMedium ? 4 : 5
     
     return rowsData;
   };
+
+  // Calcular el máximo número de proyectos entre todas las filas
+  const getMaxProjectsInAnyRow = () => {
+    const rowsData = getProjectsByRow();
+    let maxProjects = 0;
+    Object.values(rowsData).forEach(rowProjects => {
+      if (rowProjects.length > maxProjects) {
+        maxProjects = rowProjects.length;
+      }
+    });
+    return maxProjects;
+  };
+
+  const maxProjectsInAnyRow = getMaxProjectsInAnyRow();
 
   const handleImageChange = (e) => {
     const files = Array.from(e.target.files);
@@ -160,6 +175,26 @@ const cardsPerRow = isMobile ? 1 : isSmall ? 2 : isTablet ? 3 : isMedium ? 4 : 5
     }));
   };
 
+  const moveImage = (index, direction) => {
+    const newIndex = direction === 'left' ? index - 1 : index + 1;
+    if (newIndex < 0 || newIndex >= formData.images.length) return;
+    
+    const newImages = [...formData.images];
+    const newImageFiles = [...formData.imageFiles];
+    const newPublicIds = [...formData.imagePublicIds];
+    
+    [newImages[index], newImages[newIndex]] = [newImages[newIndex], newImages[index]];
+    [newImageFiles[index], newImageFiles[newIndex]] = [newImageFiles[newIndex], newImageFiles[index]];
+    [newPublicIds[index], newPublicIds[newIndex]] = [newPublicIds[newIndex], newPublicIds[index]];
+    
+    setFormData(prev => ({
+      ...prev,
+      images: newImages,
+      imageFiles: newImageFiles,
+      imagePublicIds: newPublicIds
+    }));
+  };
+
   // Funciones para manejar tecnologías
   const handleTechnologyChange = (e) => {
     const files = Array.from(e.target.files);
@@ -202,6 +237,23 @@ const cardsPerRow = isMobile ? 1 : isSmall ? 2 : isTablet ? 3 : isMedium ? 4 : 5
     setFormData(prev => ({
       ...prev,
       technologyNames: prev.technologyNames.map((name, i) => i === index ? newName : name)
+    }));
+  };
+
+  const moveTechnology = (index, direction) => {
+    const newIndex = direction === 'left' ? index - 1 : index + 1;
+    if (newIndex < 0 || newIndex >= formData.technologies.length) return;
+    
+    const newTechnologies = [...formData.technologies];
+    const newTechnologyNames = [...formData.technologyNames];
+    
+    [newTechnologies[index], newTechnologies[newIndex]] = [newTechnologies[newIndex], newTechnologies[index]];
+    [newTechnologyNames[index], newTechnologyNames[newIndex]] = [newTechnologyNames[newIndex], newTechnologyNames[index]];
+    
+    setFormData(prev => ({
+      ...prev,
+      technologies: newTechnologies,
+      technologyNames: newTechnologyNames
     }));
   };
 
@@ -478,6 +530,7 @@ const cardsPerRow = isMobile ? 1 : isSmall ? 2 : isTablet ? 3 : isMedium ? 4 : 5
   const openImageViewer = (project, imageIndex = 0) => {
     setSelectedProject(project);
     setCurrentImageIndex(imageIndex);
+    setTechCarouselIndex(0);
     imageViewModal.open();
   };
 
@@ -560,6 +613,7 @@ const cardsPerRow = isMobile ? 1 : isSmall ? 2 : isTablet ? 3 : isMedium ? 4 : 5
                   rowTitleEN={headerData.rowTitles?.[`${rowNumber}_EN`]}
                   projects={rowProjects}
                   cardsPerRow={cardsPerRow}
+                  maxProjectsInAnyRow={maxProjectsInAnyRow}
                   isDark={isDark}
                   lang={lang}
                   isAdmin={isAdmin}
@@ -671,7 +725,37 @@ const cardsPerRow = isMobile ? 1 : isSmall ? 2 : isTablet ? 3 : isMedium ? 4 : 5
                     ) : (
                       <img src={media} alt="" className="w-full h-20 object-cover rounded-lg border border-[#0078C8]/30" />
                     )}
-                    <button onClick={() => removeImage(idx)} className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center">×</button>
+                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => moveImage(idx, 'left')}
+                        disabled={idx === 0}
+                        className="p-1 bg-blue-500 text-white rounded disabled:opacity-30 disabled:cursor-not-allowed"
+                      >
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
+                        </svg>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => moveImage(idx, 'right')}
+                        disabled={idx === formData.images.length - 1}
+                        className="p-1 bg-blue-500 text-white rounded disabled:opacity-30 disabled:cursor-not-allowed"
+                      >
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+                        </svg>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => removeImage(idx)}
+                        className="p-1 bg-red-500 text-white rounded"
+                      >
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
                     {isVideo(media) && (
                       <div className="absolute bottom-1 left-1 bg-purple-500 text-white text-[8px] px-1.5 py-0.5 rounded font-bold">VIDEO</div>
                     )}
@@ -812,13 +896,37 @@ const cardsPerRow = isMobile ? 1 : isSmall ? 2 : isTablet ? 3 : isMedium ? 4 : 5
                           alt="" 
                           className="w-full h-14 object-contain"
                         />
-                        <button 
-                          type="button"
-                          onClick={() => removeTechnology(idx)} 
-                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-xs font-bold shadow-lg"
-                        >
-                          ×
-                        </button>
+                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => moveTechnology(idx, 'left')}
+                            disabled={idx === 0}
+                            className="p-0.5 bg-blue-500 text-white rounded text-xs disabled:opacity-30 disabled:cursor-not-allowed"
+                          >
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
+                            </svg>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => moveTechnology(idx, 'right')}
+                            disabled={idx === formData.technologies.length - 1}
+                            className="p-0.5 bg-blue-500 text-white rounded text-xs disabled:opacity-30 disabled:cursor-not-allowed"
+                          >
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+                            </svg>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => removeTechnology(idx)}
+                            className="p-0.5 bg-red-500 text-white rounded text-xs"
+                          >
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        </div>
                       </div>
                       <input 
                         type="text"
@@ -941,26 +1049,79 @@ const cardsPerRow = isMobile ? 1 : isSmall ? 2 : isTablet ? 3 : isMedium ? 4 : 5
               )}
             </div>
 
-            {/* Tecnologías - Diseño discreto con íconos a color */}
+            {/* Tecnologías - Carrusel Infinito */}
             {selectedProject.technologies && selectedProject.technologies.length > 0 && (
               <div className="mt-3 px-4 sm:px-6 pb-3 w-full">
-                <div className="flex flex-wrap gap-2.5 sm:gap-3 justify-center items-center max-w-xl mx-auto">
-                  {selectedProject.technologies.map((tech, idx) => (
-                    <div 
-                      key={idx} 
-                      className="transition-all duration-300 hover:scale-110"
-                      title={selectedProject.technologyNames?.[idx] || ''}
-                    >
-                      <div className="w-8 h-8 sm:w-10 sm:h-10 p-1.5">
-                        <img 
-                          src={tech} 
-                          alt={selectedProject.technologyNames?.[idx] || ''} 
-                          className="w-full h-full object-contain"
-                        />
+                {selectedProject.technologies.length <= 6 ? (
+                  // Si hay 6 o menos, mostrar todas sin carrusel
+                  <div className="flex flex-wrap gap-2.5 sm:gap-3 justify-center items-center max-w-xl mx-auto">
+                    {selectedProject.technologies.map((tech, idx) => (
+                      <div 
+                        key={idx} 
+                        className="transition-all duration-300 hover:scale-110"
+                        title={selectedProject.technologyNames?.[idx] || ''}
+                      >
+                        <div className="w-8 h-8 sm:w-10 sm:h-10 p-1.5">
+                          <img 
+                            src={tech} 
+                            alt={selectedProject.technologyNames?.[idx] || ''} 
+                            className="w-full h-full object-contain"
+                          />
+                        </div>
                       </div>
+                    ))}
+                  </div>
+                ) : (
+                  // Si hay más de 6, mostrar carrusel infinito
+                  <div className="relative max-w-xl mx-auto">
+                    <button
+                      onClick={() => {
+                        setTechCarouselIndex(prev => {
+                          const newIndex = prev - 1;
+                          return newIndex < 0 ? selectedProject.technologies.length - 1 : newIndex;
+                        });
+                      }}
+                      className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-3 z-10 p-2 rounded-full bg-[#0078C8] text-white hover:scale-110 transition-all"
+                    >
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
+                      </svg>
+                    </button>
+
+                    <div className="flex gap-2.5 sm:gap-3 justify-center items-center overflow-hidden">
+                      {Array.from({ length: 6 }).map((_, idx) => {
+                        const techIndex = (techCarouselIndex + idx) % selectedProject.technologies.length;
+                        const tech = selectedProject.technologies[techIndex];
+                        return (
+                          <div 
+                            key={idx} 
+                            className="transition-all duration-300 hover:scale-110"
+                            title={selectedProject.technologyNames?.[techIndex] || ''}
+                          >
+                            <div className="w-8 h-8 sm:w-10 sm:h-10 p-1.5">
+                              <img 
+                                src={tech} 
+                                alt={selectedProject.technologyNames?.[techIndex] || ''} 
+                                className="w-full h-full object-contain"
+                              />
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
-                  ))}
-                </div>
+
+                    <button
+                      onClick={() => {
+                        setTechCarouselIndex(prev => (prev + 1) % selectedProject.technologies.length);
+                      }}
+                      className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-3 z-10 p-2 rounded-full bg-[#0078C8] text-white hover:scale-110 transition-all"
+                    >
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+                      </svg>
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -976,7 +1137,8 @@ function RowCarousel({
   rowTitle, 
   rowTitleEN, 
   projects, 
-  cardsPerRow, 
+  cardsPerRow,
+  maxProjectsInAnyRow, 
   isDark, 
   lang, 
   isAdmin, 
@@ -1207,24 +1369,24 @@ function RowCarousel({
 
           <div className="overflow-hidden">
             <div 
-              className={`flex ${isTransitioning ? 'transition-transform duration-500 ease-out' : ''}`}
-              style={{
+              className={`flex ${isTransitioning ? 'transition-transform duration-500 ease-out' : ''} ${!needsCarousel ? 'justify-center' : ''}`}
+              style={needsCarousel ? {
                 transform: `translateX(-${currentIndex * (100 / cardsPerRow)}%)`
-              }}
+              } : {}}
             >
-              {displayGroups.map((column, colIdx) => (
+{displayGroups.map((column, colIdx) => (
                 <div 
                   key={colIdx}
                   className="flex-shrink-0 flex flex-col gap-6"
                   style={{
                     width: `${100 / cardsPerRow}%`,
-                    paddingLeft: '0.5rem',
-                    paddingRight: '0.5rem'
+                    paddingLeft: isMobile ? '1rem' : '0.5rem',
+                    paddingRight: isMobile ? '1rem' : '0.5rem'
                   }}
                 >
                   {column.map((project) => (
-                    <div key={project.id} className="w-full flex justify-center">
-                      <div className="w-full max-w-sm lg:max-w-none">
+                    <div key={project.id} className="w-full flex justify-center h-full">
+                      <div className="w-full max-w-md h-full">
                         <ProjectCard 
                           project={project}
                           isDark={isDark}
@@ -1294,14 +1456,15 @@ function ProjectCard({ project, isDark, lang, isAdmin, onEdit, onDelete, onImage
   const isCurrentVideo = isVideo(currentMedia);
 
   return (
-    <div className="group relative h-full max-h-[480px] sm:max-h-[540px] flex flex-col">
+    <div className="group relative h-full min-h-[450px] sm:min-h-[500px] flex flex-col">
       <div className={`relative h-full flex flex-col rounded-3xl border overflow-hidden transition-all duration-700 ${
         isDark 
           ? 'bg-[#0F172A]/40 border-white/5 group-hover:border-[#0078C8]/40 shadow-2xl shadow-black/50' 
           : 'bg-white border-slate-200 shadow-xl group-hover:border-[#0078C8]/40'
       }`}>
         
-        <div className="relative overflow-hidden aspect-[16/9] flex-shrink-0 cursor-pointer" onClick={() => onImageClick(currentImgIndex)}>
+        {/* Imagen/Video - Ajuste de aspect ratio en mobile para dar espacio */}
+        <div className="relative overflow-hidden aspect-video sm:aspect-[16/9] flex-shrink-0 cursor-pointer" onClick={() => onImageClick(currentImgIndex)}>
           {isCurrentVideo ? (
             <video 
               src={currentMedia}
@@ -1341,35 +1504,36 @@ function ProjectCard({ project, isDark, lang, isAdmin, onEdit, onDelete, onImage
           )}
         </div>
 
-        <div className="p-4 sm:p-4 md:p-5 flex flex-col flex-1 min-h-[260px] sm:min-h-[300px]">
-          <h4 className={`text-lg sm:text-lg md:text-xl font-black tracking-tight mb-2 sm:mb-2 leading-tight text-center transition-colors duration-300 line-clamp-2 flex-shrink-0 ${
+        {/* Contenido - Ajuste de flex-grow y padding */}
+        <div className="p-4 sm:p-5 flex flex-col flex-grow">
+          <h4 className={`text-lg sm:text-xl font-black tracking-tight mb-2 leading-tight text-center transition-colors duration-300 line-clamp-2 ${
             isDark ? 'text-white' : 'text-slate-900'
           }`}>
             {lang === 'ES' ? project.title : (project.titleEN || project.title)}
           </h4>
           
-          <div className="flex-1 min-h-0 mb-3 sm:mb-4 overflow-hidden">
-            <p className={`text-sm sm:text-sm leading-relaxed line-clamp-6 sm:line-clamp-8 text-center transition-colors duration-300 ${
+          <div className="flex-grow mb-4 overflow-hidden">
+            <p className={`text-sm leading-relaxed line-clamp-4 sm:line-clamp-6 text-center transition-colors duration-300 ${
               isDark ? 'text-slate-400' : 'text-slate-600'
             }`}>
               {lang === 'ES' ? project.description : (project.descriptionEN || project.description)}
             </p>
           </div>
 
-          <div className="flex-shrink-0 flex items-center gap-2">
-            <a href={project.demo} target="_blank" rel="noopener noreferrer" className="flex-1 py-2.5 sm:py-2.5 px-3 rounded-xl font-black uppercase tracking-[0.15em] text-[9px] sm:text-[9px] transition-all duration-300 flex items-center justify-center gap-1.5 sm:gap-2 bg-[#0078C8] text-white hover:bg-[#005A96] shadow-lg shadow-[#0078C8]/20">
-              <span className="hidden sm:inline">{lang === 'ES' ? 'Ver Web' : 'View Site'}</span>
-              <span className="sm:hidden">{lang === 'ES' ? 'Ver' : 'View'}</span>
-              <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+          {/* Botones - Al fondo siempre */}
+          <div className="mt-auto flex items-center gap-2">
+            <a href={project.demo} target="_blank" rel="noopener noreferrer" className="flex-1 py-3 px-3 rounded-xl font-black uppercase tracking-[0.15em] text-[10px] transition-all duration-300 flex items-center justify-center gap-2 bg-[#0078C8] text-white hover:bg-[#005A96] shadow-lg shadow-[#0078C8]/20">
+              <span>{lang === 'ES' ? 'Ver Proyecto' : 'View Project'}</span>
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
             </a>
             
             {isAdmin && (
-              <div className="flex gap-1.5 sm:gap-2 flex-shrink-0">
-                <button onClick={onEdit} className="p-2 sm:p-2.5 rounded-xl bg-blue-500/10 text-blue-500 hover:bg-blue-500 hover:text-white transition-all">
-                  <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" strokeWidth="2" /></svg>
+              <div className="flex gap-1.5 flex-shrink-0">
+                <button onClick={onEdit} className="p-2.5 rounded-xl bg-blue-500/10 text-blue-500 hover:bg-blue-500 hover:text-white transition-all">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" strokeWidth="2" /></svg>
                 </button>
-                <button onClick={onDelete} className="p-2 sm:p-2.5 rounded-xl bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all">
-                  <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" strokeWidth="2" /></svg>
+                <button onClick={onDelete} className="p-2.5 rounded-xl bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" strokeWidth="2" /></svg>
                 </button>
               </div>
             )}
