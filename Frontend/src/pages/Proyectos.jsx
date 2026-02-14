@@ -1540,7 +1540,7 @@ function ProjectCard({ project, isDark, lang, isAdmin, onEdit, onDelete, onImage
   const isCurrentVideo = isVideo(currentMedia);
 
   return (
-    <div className="group relative h-full min-h-[450px] sm:min-h-[500px] flex flex-col">
+    <div className="group relative h-full min-h-[380px] sm:min-h-[420px] flex flex-col">
       <div className={`relative h-full flex flex-col rounded-3xl border overflow-hidden transition-all duration-700 ${
         isDark 
           ? 'bg-[#0F172A]/40 border-white/5 group-hover:border-[#0078C8]/40 shadow-2xl shadow-black/50' 
@@ -1588,24 +1588,48 @@ function ProjectCard({ project, isDark, lang, isAdmin, onEdit, onDelete, onImage
           )}
         </div>
 
-        {/* Contenido - Ajuste de flex-grow y padding */}
-        <div className="p-4 sm:p-5 flex flex-col flex-grow">
-          <h4 className={`text-lg sm:text-xl font-black tracking-tight mb-2 leading-tight text-center transition-colors duration-300 line-clamp-2 ${
+        {/* Contenido - Padding reducido para cards más compactas */}
+        <div className="p-3 sm:p-4 flex flex-col flex-1 min-h-0">
+          {/* Título */}
+          <h4 className={`text-lg sm:text-xl font-black tracking-tight mb-2 leading-tight text-center transition-colors duration-300 flex-shrink-0 ${
             isDark ? 'text-white' : 'text-slate-900'
-          }`}>
+          }`}
+          style={{
+            display: '-webkit-box',
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: 'vertical',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            lineHeight: '1.2'
+          }}>
             {lang === 'ES' ? project.title : (project.titleEN || project.title)}
           </h4>
           
-          <div className="flex-grow mb-4 overflow-hidden">
-            <p className={`text-sm leading-relaxed line-clamp-4 sm:line-clamp-6 text-center transition-colors duration-300 ${
+          {/* Descripción - 5 líneas que caben sin agrandar la card */}
+          <div 
+            className="mb-3 overflow-hidden flex-shrink-0"
+            style={{ 
+              // Altura exacta: 120px = 5 líneas × 24px (nunca se corta a la mitad)
+              height: '120px'
+            }}
+          >
+            <p className={`text-sm text-center transition-colors duration-300 ${
               isDark ? 'text-slate-400' : 'text-slate-600'
-            }`}>
+            }`}
+            style={{
+              display: '-webkit-box',
+              WebkitLineClamp: 5,
+              WebkitBoxOrient: 'vertical',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              lineHeight: '24px'
+            }}>
               {lang === 'ES' ? project.description : (project.descriptionEN || project.description)}
             </p>
           </div>
 
-          {/* Botones - Al fondo siempre */}
-          <div className="mt-auto flex items-center gap-2">
+          {/* Botones - Siempre visibles al final con espacio flexible arriba */}
+          <div className="mt-auto flex items-center gap-2 flex-shrink-0">
             <a href={project.demo} target="_blank" rel="noopener noreferrer" className="flex-1 py-3 px-3 rounded-xl font-black uppercase tracking-[0.15em] text-[10px] transition-all duration-300 flex items-center justify-center gap-2 bg-[#0078C8] text-white hover:bg-[#005A96] shadow-lg shadow-[#0078C8]/20">
               <span>{lang === 'ES' ? 'Ver Proyecto' : 'View Project'}</span>
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
