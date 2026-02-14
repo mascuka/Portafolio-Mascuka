@@ -78,10 +78,11 @@ export default function Proyectos({ projects, onUpdate }) {
 
   const projectsList = Array.isArray(projects?.list || projects) ? (projects?.list || projects) : [];
   
+// Breakpoints ajustados - Pasan más rápido para evitar apretujamiento
 const isMobile = windowWidth < 640;
-const isSmall = windowWidth >= 640 && windowWidth < 1000;
-const isTablet = windowWidth >= 1000 && windowWidth < 1280;
-const isMedium = windowWidth >= 1280 && windowWidth < 1536;
+const isSmall = windowWidth >= 640 && windowWidth < 1100;   // Pasa a 2
+const isTablet = windowWidth >= 1100 && windowWidth < 1450; // Pasa a 3 en 1450px
+const isMedium = windowWidth >= 1450 && windowWidth < 1700; // Pasa a 4
 const cardsPerRow = isMobile ? 1 : isSmall ? 2 : isTablet ? 3 : isMedium ? 4 : 5;
 
   // Agrupar proyectos por fila
@@ -618,6 +619,7 @@ const cardsPerRow = isMobile ? 1 : isSmall ? 2 : isTablet ? 3 : isMedium ? 4 : 5
                   lang={lang}
                   isAdmin={isAdmin}
                   isMobile={isMobile}
+                  windowWidth={windowWidth}
                   onEdit={handleEdit}
                   onDelete={handleDelete}
                   onImageClick={openImageViewer}
@@ -1143,6 +1145,7 @@ function RowCarousel({
   lang, 
   isAdmin, 
   isMobile,
+  windowWidth,
   onEdit, 
   onDelete, 
   onImageClick,
@@ -1287,6 +1290,22 @@ function RowCarousel({
   const displayTitle = lang === 'ES' ? rowTitle : (rowTitleEN || rowTitle);
   const hasTitle = displayTitle && displayTitle.trim() !== '';
 
+  // Determinar cuándo usar justify-center vs justify-around
+  // Usar maxProjectsInAnyRow para consistencia entre filas
+  const shouldUseJustifyCenter = () => {
+    const effectiveCardCount = Math.min(maxProjectsInAnyRow, cardsPerRow);
+    
+    if (effectiveCardCount === 2) {
+      return windowWidth < 1000;
+    } else if (effectiveCardCount === 3) {
+      return windowWidth < 1000;
+    } else if (effectiveCardCount === 4) {
+      return windowWidth < 1100;
+    }
+    
+    return true;
+  };
+
   return (
     <div className="mb-8">
       {/* Título de la fila */}
@@ -1369,39 +1388,104 @@ function RowCarousel({
 
           <div className="overflow-hidden">
             <div 
-              className={`flex ${isTransitioning ? 'transition-transform duration-500 ease-out' : ''} ${!needsCarousel ? 'justify-center' : ''}`}
+              className={`flex ${isTransitioning ? 'transition-transform duration-500 ease-out' : ''} 
+                ${!needsCarousel ? (shouldUseJustifyCenter() ? 'justify-center' : 'justify-around') : ''}`}
               style={needsCarousel ? {
                 transform: `translateX(-${currentIndex * (100 / cardsPerRow)}%)`
               } : {}}
             >
-{displayGroups.map((column, colIdx) => (
-                <div 
-                  key={colIdx}
-                  className="flex-shrink-0 flex flex-col gap-6"
-                  style={{
-                    width: `${100 / cardsPerRow}%`,
-                    paddingLeft: isMobile ? '1rem' : '0.5rem',
-                    paddingRight: isMobile ? '1rem' : '0.5rem'
-                  }}
-                >
-                  {column.map((project) => (
-                    <div key={project.id} className="w-full flex justify-center h-full">
-                      <div className="w-full max-w-md h-full">
-                        <ProjectCard 
-                          project={project}
-                          isDark={isDark}
-                          lang={lang}
-                          isAdmin={isAdmin}
-                          onEdit={() => onEdit(project)}
-                          onDelete={() => onDelete(project.id)}
-                          onImageClick={(imageIndex) => onImageClick(project, imageIndex)}
-                          isMobile={isMobile}
-                        />
+              {displayGroups.map((column, colIdx) => {
+                // Usar maxProjectsInAnyRow para que todas las filas tengan el mismo tamaño
+                // Esto asegura consistencia visual entre filas
+                const effectiveCardCount = Math.min(maxProjectsInAnyRow, cardsPerRow);
+                
+                const isTwo = !needsCarousel && effectiveCardCount === 2;
+                const isThree = !needsCarousel && effectiveCardCount === 3;
+                const isFour = !needsCarousel && effectiveCardCount === 4;
+                
+                // SISTEMA PARA 2 CARDS
+                let twoCardsWidth = '45%';
+                if (isTwo) {
+                  if (windowWidth >= 1700) twoCardsWidth = '42%';      // Gap grande
+                  else if (windowWidth >= 1600) twoCardsWidth = '43%'; 
+                  else if (windowWidth >= 1500) twoCardsWidth = '44%';
+                  else if (windowWidth >= 1400) twoCardsWidth = '45%';
+                  else if (windowWidth >= 1300) twoCardsWidth = '46%';
+                  else if (windowWidth >= 1200) twoCardsWidth = '47%';
+                  else if (windowWidth >= 1100) twoCardsWidth = '48%';
+                  else if (windowWidth >= 1000) twoCardsWidth = '49%';
+                  else twoCardsWidth = '50%'; // Gap mínimo
+                }
+                
+                // SISTEMA PARA 3 CARDS
+                let threeCardsWidth = '30%';
+                if (isThree) {
+                  if (windowWidth >= 1700) threeCardsWidth = '28%';
+                  else if (windowWidth >= 1600) threeCardsWidth = '29%';
+                  else if (windowWidth >= 1500) threeCardsWidth = '30%';
+                  else if (windowWidth >= 1400) threeCardsWidth = '31%';
+                  else if (windowWidth >= 1300) threeCardsWidth = '31.5%';
+                  else if (windowWidth >= 1200) threeCardsWidth = '32%';
+                  else if (windowWidth >= 1100) threeCardsWidth = '32.5%';
+                  else if (windowWidth >= 1000) threeCardsWidth = '33%';
+                  else threeCardsWidth = '33.3%';
+                }
+                
+                // SISTEMA PARA 4 CARDS
+                let fourCardsWidth = '23%';
+                if (isFour) {
+                  if (windowWidth >= 1700) fourCardsWidth = '22.5%';
+                  else if (windowWidth >= 1600) fourCardsWidth = '23%';
+                  else if (windowWidth >= 1500) fourCardsWidth = '23.3%';
+                  else if (windowWidth >= 1400) fourCardsWidth = '23.6%';
+                  else if (windowWidth >= 1350) fourCardsWidth = '24%';
+                  else if (windowWidth >= 1300) fourCardsWidth = '24.3%';
+                  else if (windowWidth >= 1200) fourCardsWidth = '24.5%';
+                  else if (windowWidth >= 1100) fourCardsWidth = '24.7%';
+                  else fourCardsWidth = '25%';
+                }
+                
+                // Determinar width final
+                let finalWidth;
+                if (isTwo) {
+                  finalWidth = twoCardsWidth;
+                } else if (isThree) {
+                  finalWidth = threeCardsWidth;
+                } else if (isFour) {
+                  finalWidth = fourCardsWidth;
+                } else {
+                  finalWidth = `${100 / cardsPerRow}%`;
+                }
+                
+                return (
+                  <div 
+                    key={colIdx}
+                    className="flex-shrink-0 flex flex-col gap-6"
+                    style={{
+                      width: finalWidth,
+                      paddingLeft: isMobile ? '1rem' : '0.5rem',
+                      paddingRight: isMobile ? '1rem' : '0.5rem'
+                    }}
+                  >
+                    {column.map((project) => (
+                      <div key={project.id} className="w-full flex justify-center h-full">
+                        <div className="w-full max-w-md h-full">
+                          <ProjectCard 
+                            project={project}
+                            isDark={isDark}
+                            lang={lang}
+                            isAdmin={isAdmin}
+                            onEdit={() => onEdit(project)}
+                            onDelete={() => onDelete(project.id)}
+                            onImageClick={(imageIndex) => onImageClick(project, imageIndex)}
+                            isMobile={isMobile}
+                          />
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              ))}
+                    ))}
+                  </div>
+                );
+              })}
             </div>
           </div>
 
