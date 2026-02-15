@@ -97,7 +97,7 @@ export default function Home({ data, cvUrl, onUpdate, onUpdateCV }) {
   };
 
   const commonBtnClass = `group relative flex items-center justify-center w-12 h-12 rounded-full border-2 transition-all duration-300 hover:scale-110 overflow-hidden ${
-    isDark ? 'bg-white/[0.03] border-white/10' : 'bg-white border-slate-200'
+    isDark ? 'bg-white/[0.03] border-white/10' : 'bg-[var(--color-light-bg-secondary)] border-slate-200'
   } hover:border-transparent`;
 
   const getDownloadUrl = (url) => {
@@ -108,7 +108,7 @@ export default function Home({ data, cvUrl, onUpdate, onUpdateCV }) {
   };
 
   return (
-    <div className={`min-h-screen relative flex items-center transition-colors duration-700 overflow-hidden pt-5 md:pt-20 ${isDark ? 'bg-[#080B12]' : 'bg-[#F5F7FA]'}`}>
+    <div className={`min-h-screen relative flex items-center transition-colors duration-700 overflow-hidden pt-5 md:pt-20 ${isDark ? 'bg-[var(--color-dark-bg)]' : 'bg-[var(--color-light-bg)]'}`}>
       <div className="absolute inset-0 opacity-[0.015] pointer-events-none" style={{backgroundImage: isDark ? 'linear-gradient(rgba(0,163,255,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(0,163,255,0.08) 1px, transparent 1px)' : 'linear-gradient(rgba(0,120,200,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(0,120,200,0.1) 1px, transparent 1px)', backgroundSize: '100px 100px'}} />
       
       {/* CAMBIOS: max-w más grande, gap ajustado progresivamente, mostrar imagen desde xl */}
@@ -148,7 +148,7 @@ export default function Home({ data, cvUrl, onUpdate, onUpdateCV }) {
             {data?.email && (
               <button onClick={() => setShowMailModal(true)} title="Enviar Correo" className={commonBtnClass}>
                 <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300" style={{ background: 'linear-gradient(45deg, #4285F4, #EA4335, #FBBC05, #34A853)' }} />
-                <div className="absolute inset-[2px] rounded-full bg-white opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                <div className="absolute inset-[2px] rounded-full bg-[var(--color-light-bg-secondary)] opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                 <img src="https://upload.wikimedia.org/wikipedia/commons/7/7e/Gmail_icon_%282020%29.svg" alt="Gmail" className="w-5 h-5 z-10 transition-all duration-300 gmail-icon" style={{
                   filter: isDark ? 'brightness(0) saturate(100%) invert(71%) sepia(12%) saturate(620%) hue-rotate(180deg) brightness(90%) contrast(88%)' : 'brightness(0) saturate(100%) invert(35%) sepia(15%) saturate(850%) hue-rotate(180deg) brightness(96%) contrast(90%)'
                 }} />

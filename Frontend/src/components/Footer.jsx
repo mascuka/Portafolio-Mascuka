@@ -63,7 +63,7 @@ export default function Footer() {
         w-full py-6 xl:py-4 px-6 sm:px-10 md:px-12 transition-all duration-700 border-t
         ${isDark
           ? 'bg-[#0A0E17] border-white/5 text-slate-400'
-          : 'bg-white border-slate-200 text-slate-700'
+          : 'bg-[var(--color-light-bg-secondary)] border-slate-200 text-slate-700'
         }
       `}>
         <div className="max-w-[1800px] mx-auto flex flex-col xl:flex-row items-center justify-between gap-6 xl:gap-4 min-w-0">

@@ -9,7 +9,7 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Usando las constantes centralizadas
+        // Usando las constantes centralizadas - ACTUALIZADAS
         'primary': COLORS.primary,
         'primary-hover': COLORS.primaryHover,
         'primary-light': COLORS.primaryLight,

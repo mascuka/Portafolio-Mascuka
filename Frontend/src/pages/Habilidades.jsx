@@ -8,6 +8,7 @@ import Input from '../components/ui/Input';
 import Textarea from '../components/ui/Textarea';
 import Button from '../components/ui/Button';
 import SectionWrapper from '../components/SectionWrapper';
+import { getSkillCardClass, getSmallInputClass, getPreviewImageClass, getDragOverClass, getTextClass } from '../constants/styles';
 
 export default function Habilidades({ data, onUpdate }) {
   const { isDark, isAdmin, lang } = useApp();
@@ -732,7 +733,7 @@ export default function Habilidades({ data, onUpdate }) {
               <button 
                 onClick={editHeaderModal.open} 
                 className={`p-2 rounded-lg transition-all opacity-60 hover:opacity-100 ${
-                  isDark ? 'bg-white/5 hover:bg-white/10 text-white/60' : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
+                  isDark ? 'bg-white/5 hover:bg-white/10 text-white/60' : 'bg-[var(--color-light-bg-secondary)] hover:bg-[var(--color-light-bg-tertiary)] text-[var(--color-light-text-secondary)]'
                 }`}
               >
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -783,9 +784,9 @@ export default function Habilidades({ data, onUpdate }) {
                 <div 
                   key={sectionIndex}
                   className={`skill-section-card group/section space-y-3 relative transition-all duration-300 hover:-translate-y-2 hover:shadow-xl ${
-                    isDark ? 'bg-white/[0.02]' : 'bg-white'
+                    isDark ? 'bg-white/[0.02]' : 'bg-[var(--color-light-bg-secondary)]'
                   } rounded-xl p-2 border ${
-                    isDark ? 'border-white/5' : 'border-slate-200'
+                    isDark ? 'border-white/5' : 'border-[var(--color-light-border)]'
                   } ${isAdmin ? 'hover:border-[#0078C8]/40' : ''} ${
                     draggedSection === sectionIndex ? 'opacity-50 scale-95' : ''
                   }`}
@@ -907,7 +908,7 @@ export default function Habilidades({ data, onUpdate }) {
                                   className={`relative w-full h-full rounded-lg p-3 flex flex-col items-center justify-center gap-3 border transition-all duration-300 hover:-translate-y-2 hover:shadow-xl ${
                                     isDark 
                                       ? 'bg-white/[0.03] border-white/10 hover:border-[#0078C8]/40' 
-                                      : 'bg-white border-slate-200 hover:border-[#0078C8]/40 shadow-sm'
+                                      : 'bg-[var(--color-light-bg-secondary)] border-[var(--color-light-border)] hover:border-[#0078C8]/40 shadow-lg shadow-slate-900/10'
                                   }`}
                                   style={{ cursor: !isAdmin && skill.hasCertificate ? 'pointer' : undefined }}
                                   onClick={() => {
@@ -1000,7 +1001,7 @@ export default function Habilidades({ data, onUpdate }) {
                 value={sectionForm.width} 
                 onChange={e => setSectionForm({...sectionForm, width: e.target.value})}
                 className={`w-full p-3 rounded-lg border outline-none text-sm ${
-                  isDark ? 'bg-[#0F172A] border-white/10 text-white' : 'bg-white border-slate-200'
+                  isDark ? 'bg-[#0F172A] border-white/10 text-white' : 'bg-[var(--color-light-bg-secondary)] border-[var(--color-light-border)] text-[var(--color-light-text-primary)]'
                 }`}
               >
                 <option value="100%">100% - Completo</option>
@@ -1015,7 +1016,7 @@ export default function Habilidades({ data, onUpdate }) {
                 value={sectionForm.rows} 
                 onChange={e => setSectionForm({...sectionForm, rows: parseInt(e.target.value)})}
                 className={`w-full p-3 rounded-lg border outline-none text-sm ${
-                  isDark ? 'bg-[#0F172A] border-white/10 text-white' : 'bg-white border-slate-200'
+                  isDark ? 'bg-[#0F172A] border-white/10 text-white' : 'bg-[var(--color-light-bg-secondary)] border-[var(--color-light-border)] text-[var(--color-light-text-primary)]'
                 }`}
               >
                 {[1,2,3,4,5].map(n => (
@@ -1138,11 +1139,7 @@ export default function Habilidades({ data, onUpdate }) {
                             newTitles[idx] = e.target.value;
                             setSkillForm({...skillForm, certTitles: newTitles});
                           }}
-                          className={`w-full text-center rounded px-1 py-0.5 outline-none border text-[10px] ${
-                            isDark 
-                              ? 'bg-slate-800 border-slate-600 text-white placeholder-slate-500' 
-                              : 'bg-white border-slate-300 text-slate-700 placeholder-slate-400'
-                          }`}
+                          className={getSmallInputClass(isDark)}
                         />
                       </div>
                     ))}

@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect } from 'react';
 import { auth } from '../lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { ADMIN_EMAIL, ADMIN_DETECTED_KEY, TIMEOUTS } from '../constants/config';
+import { COLORS } from '../constants/colors'; // ← NUEVO: Para inyección dinámica
 
 /**
  * CONTEXTO GLOBAL DE LA APLICACIÓN
@@ -32,6 +33,39 @@ export const AppProvider = ({ children }) => {
 
   // isAdmin real: true solo si está logueado AHORA como admin
   const isAdmin = user?.email === ADMIN_EMAIL;
+
+  // 🎨 INYECCIÓN DINÁMICA DE COLORES CSS
+  // Se ejecuta PRIMERO para garantizar que las variables estén disponibles
+  useEffect(() => {
+    const root = document.documentElement;
+    
+    // Inyectar colores modo claro
+    root.style.setProperty('--color-light-bg', COLORS.lightBg);
+    root.style.setProperty('--color-light-bg-secondary', COLORS.lightBgSecondary);
+    root.style.setProperty('--color-light-bg-tertiary', COLORS.lightBgTertiary);
+    root.style.setProperty('--color-light-text-primary', COLORS.lightTextPrimary);
+    root.style.setProperty('--color-light-text-secondary', COLORS.lightTextSecondary);
+    root.style.setProperty('--color-light-text-tertiary', COLORS.lightTextTertiary);
+    root.style.setProperty('--color-light-border', COLORS.lightBorder);
+    root.style.setProperty('--color-light-border-secondary', COLORS.lightBorderSecondary);
+    
+    // Inyectar colores modo oscuro
+    root.style.setProperty('--color-dark-bg', COLORS.darkBg);
+    root.style.setProperty('--color-dark-bg-secondary', COLORS.darkBgSecondary);
+    root.style.setProperty('--color-dark-bg-tertiary', COLORS.darkBgTertiary);
+    
+    // Inyectar colores primary
+    root.style.setProperty('--color-primary', COLORS.primary);
+    root.style.setProperty('--color-primary-hover', COLORS.primaryHover);
+    root.style.setProperty('--color-primary-light', COLORS.primaryLight);
+    
+    // Log para debugging
+    console.log('🎨 [AppContext] Colores inyectados:', {
+      'lightBg': COLORS.lightBg,
+      'lightBgSecondary': COLORS.lightBgSecondary,
+      'lightBgTertiary': COLORS.lightBgTertiary,
+    });
+  }, []); // Solo se ejecuta una vez al montar
 
   // 🔐 MANEJO DE AUTENTICACIÓN
   useEffect(() => {

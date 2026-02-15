@@ -61,7 +61,7 @@ export default function CVUploader({ currentCV, onCVChange }) {
         transition-all cursor-pointer
         ${isDark 
           ? 'border-white/10 bg-white/5 hover:bg-white/[0.08] hover:border-[#00A3FF]/50' 
-          : 'border-slate-200 bg-slate-50 hover:bg-slate-100 hover:border-[#00A3FF]/50'
+          : 'border-slate-200 bg-[var(--color-light-bg-secondary)] hover:bg-[var(--color-light-bg)] hover:border-[#00A3FF]/50'
         }
       `}>
         <input 
@@ -75,7 +75,7 @@ export default function CVUploader({ currentCV, onCVChange }) {
         {/* Ícono PDF */}
         <div className={`
           w-14 h-14 flex items-center justify-center rounded-xl transition-colors
-          ${isDark ? 'bg-white/5 text-[#00A3FF]' : 'bg-slate-200 text-[#00A3FF]'} 
+          ${isDark ? 'bg-white/5 text-[#00A3FF]' : 'bg-[var(--color-light-bg)] text-[#00A3FF]'} 
           group-hover:bg-[#00A3FF] group-hover:text-white
         `}>
           {uploading ? (

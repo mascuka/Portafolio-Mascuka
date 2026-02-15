@@ -177,7 +177,7 @@ export default function Navbar({ data, onUpdate }) {
       ${scrolled ? 'shadow-lg' : ''}
       ${isDark 
         ? 'bg-[#0A0F1A]/90 border-white/5' 
-        : 'bg-white/90 border-slate-200'
+        : 'bg-[var(--color-light-bg-secondary)]/90 border-slate-200'
       }
     `}>
       <div className="max-w-[1800px] mx-auto px-6 md:px-12 py-4">
@@ -199,10 +199,10 @@ export default function Navbar({ data, onUpdate }) {
                   onClick={() => handleNavClick(link.id)} 
                   className={`
                     relative cursor-pointer transition-all duration-300 group
-                    text-[14px] font-semibold font-['Quicksand'] tracking-[0.2em]
+                    text-[14px] font-['Quicksand'] tracking-[0.2em]
                     ${activeSection === link.id 
-                      ? (isDark ? 'text-white' : 'text-slate-900') 
-                      : (isDark ? 'text-white/40 hover:text-white/80' : 'text-slate-400 hover:text-slate-600')
+                      ? (isDark ? 'text-white font-semibold' : 'text-slate-900 font-bold') 
+                      : (isDark ? 'text-white/40 hover:text-white/80 font-semibold' : 'text-slate-400 hover:text-slate-600 font-bold')
                     }
                   `}
                 >
@@ -248,7 +248,7 @@ export default function Navbar({ data, onUpdate }) {
                   className={`
                     px-3 py-1 rounded-full transition-all
                     ${lang === 'ES' 
-                      ? (isDark ? 'bg-white/10 text-white' : 'bg-white text-[#0078C8] shadow-sm') 
+                      ? (isDark ? 'bg-white/10 text-white' : 'bg-[var(--color-light-bg-secondary)] text-[#0078C8] shadow-sm') 
                       : 'text-slate-500'
                     }
                   `}
@@ -260,7 +260,7 @@ export default function Navbar({ data, onUpdate }) {
                   className={`
                     px-3 py-1 rounded-full transition-all
                     ${lang === 'EN' 
-                      ? (isDark ? 'bg-white/10 text-white' : 'bg-white text-[#0078C8] shadow-sm') 
+                      ? (isDark ? 'bg-white/10 text-white' : 'bg-[var(--color-light-bg-secondary)] text-[#0078C8] shadow-sm') 
                       : 'text-slate-500'
                     }
                   `}
@@ -277,7 +277,7 @@ export default function Navbar({ data, onUpdate }) {
                   transition-all duration-300 border
                   ${isDark 
                     ? 'bg-[#111827] border-white/5 text-slate-400 hover:border-white/20' 
-                    : 'bg-white border-slate-200 text-yellow-500 hover:border-yellow-400/30'
+                    : 'bg-[var(--color-light-bg-secondary)] border-slate-200 text-yellow-500 hover:border-yellow-400/30'
                   }
                 `}
               >
@@ -298,7 +298,7 @@ export default function Navbar({ data, onUpdate }) {
         {/* Mobile Menu */}
         {isOpen && (
           <div className={`lg:hidden absolute top-full left-0 w-full ${
-            isDark ? 'bg-[#0A0F1A]/95 backdrop-blur-xl' : 'bg-white/95 backdrop-blur-xl'
+            isDark ? 'bg-[#0A0F1A]/95 backdrop-blur-xl' : 'bg-[var(--color-light-bg-secondary)]/95 backdrop-blur-xl'
           }`}>
             <div className="px-6 py-4 space-y-4">
               {navLinks.map((link) => (
@@ -323,7 +323,7 @@ export default function Navbar({ data, onUpdate }) {
                     onClick={() => setLang('ES')} 
                     className={`px-3 py-1 rounded-full transition-all ${
                       lang === 'ES' 
-                        ? (isDark ? 'bg-white/10 text-white' : 'bg-white text-[#0078C8] shadow-sm') 
+                        ? (isDark ? 'bg-white/10 text-white' : 'bg-[var(--color-light-bg-secondary)] text-[#0078C8] shadow-sm') 
                         : 'text-slate-500'
                     }`}
                   >
@@ -333,7 +333,7 @@ export default function Navbar({ data, onUpdate }) {
                     onClick={() => setLang('EN')} 
                     className={`px-3 py-1 rounded-full transition-all ${
                       lang === 'EN' 
-                        ? (isDark ? 'bg-white/10 text-white' : 'bg-white text-[#0078C8] shadow-sm') 
+                        ? (isDark ? 'bg-white/10 text-white' : 'bg-[var(--color-light-bg-secondary)] text-[#0078C8] shadow-sm') 
                         : 'text-slate-500'
                     }`}
                   >
@@ -346,7 +346,7 @@ export default function Navbar({ data, onUpdate }) {
                   className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all duration-300 border ${
                     isDark 
                       ? 'bg-[#111827] border-white/5 text-slate-400' 
-                      : 'bg-white border-slate-200 text-yellow-500'
+                      : 'bg-[var(--color-light-bg-secondary)] border-slate-200 text-yellow-500'
                   }`}
                 >
                   {isDark ? (

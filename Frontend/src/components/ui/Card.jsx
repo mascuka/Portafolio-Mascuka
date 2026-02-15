@@ -21,10 +21,10 @@ export default function Card({
     default: '',
     glass: isDark 
       ? 'backdrop-blur-xl bg-white/[0.03]' 
-      : 'backdrop-blur-xl bg-white/80',
+      : 'backdrop-blur-xl bg-[var(--color-light-bg-secondary)]/95',
     gradient: isDark
       ? 'bg-gradient-to-br from-white/[0.03] to-white/[0.01]'
-      : 'bg-gradient-to-br from-white to-slate-50'
+      : 'bg-gradient-to-br from-[var(--color-light-bg-secondary)] to-[var(--color-light-bg)]'
   };
   
   return (

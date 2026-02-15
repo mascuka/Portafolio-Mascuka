@@ -4,7 +4,31 @@
 @theme {
   --color-sistemas: #00A3FF; 
   --color-fondo: #05070A;
-  --color-light-bg: #FAFBFC;
+  
+  /* === MODO OSCURO === */
+  --color-dark-bg: #080B12;
+  --color-dark-bg-secondary: #0A0F1A;
+  --color-dark-bg-tertiary: #0A0E14;
+  
+  /* === MODO CLARO - WARM/BEIGE 🌾 === */
+  /* Tonos cálidos tipo Notion - SIN blanco puro */
+  --color-light-bg: #F0EDE8;           /* Fondo principal - beige/warm claro */
+  --color-light-bg-secondary: #F8F6F3; /* Cards - crema suave (NO blanco) */
+  --color-light-bg-tertiary: #FDFCFB;  /* Inputs, botones, hover - off-white cálido */
+  
+  /* Textos modo claro */
+  --color-light-text-primary: #1A202C;   /* Texto principal - gris oscuro azulado */
+  --color-light-text-secondary: #4A5568; /* Texto secundario - gris medio */
+  --color-light-text-tertiary: #718096;  /* Texto terciario / placeholders */
+  
+  /* Bordes modo claro */
+  --color-light-border: #E0DBD4;         /* Bordes principales */
+  --color-light-border-secondary: #D0C9C0; /* Bordes hover/activos */
+  
+  /* === AZUL PRINCIPAL === */
+  --color-primary: #0078C8;
+  --color-primary-hover: #005A96;
+  --color-primary-light: #00A3FF;
 }
 
 /* ============================================
@@ -205,7 +229,7 @@ html {
 }
 
 /* ============================================
-   SCROLLBAR
+   SCROLLBAR - Paleta WARM
    ============================================ */
 
 ::-webkit-scrollbar {
@@ -223,6 +247,19 @@ html {
 
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(0, 163, 255, 0.5);
+}
+
+/* Scrollbar modo claro WARM */
+body.light ::-webkit-scrollbar-thumb {
+  background: rgba(0, 120, 200, 0.3);
+}
+
+body.light ::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 120, 200, 0.5);
+}
+
+body.light ::-webkit-scrollbar-track {
+  background: rgba(224, 219, 212, 0.4);
 }
 
 /* ============================================
@@ -259,4 +296,51 @@ input:focus-visible,
 textarea:focus-visible {
   outline: 2px solid var(--color-sistemas);
   outline-offset: 2px;
+}
+
+/* ============================================
+   MEJORAS ESPECÍFICAS MODO CLARO WARM
+   ============================================ */
+
+/* Sombras para modo claro warm */
+body.light .card-shadow {
+  box-shadow: 0 2px 8px rgba(26, 32, 44, 0.12), 0 1px 4px rgba(26, 32, 44, 0.08);
+}
+
+body.light .card-shadow:hover {
+  box-shadow: 0 8px 24px rgba(26, 32, 44, 0.16), 0 4px 8px rgba(26, 32, 44, 0.12);
+}
+
+/* Bordes para modo claro warm */
+body.light .border-light {
+  border-color: var(--color-light-border);
+}
+
+body.light .border-light:hover {
+  border-color: var(--color-light-border-secondary);
+}
+
+/* Efecto de glow suave en elementos interactivos */
+body.light button:hover,
+body.light a:hover {
+  box-shadow: 0 0 0 3px rgba(0, 120, 200, 0.08);
+}
+
+/* Texto con mejor contraste en modo claro */
+body.light {
+  color: var(--color-light-text-primary);
+}
+
+body.light h1, 
+body.light h2, 
+body.light h3, 
+body.light h4, 
+body.light h5, 
+body.light h6 {
+  color: var(--color-light-text-primary);
+}
+
+body.light p,
+body.light span {
+  color: var(--color-light-text-secondary);
 }

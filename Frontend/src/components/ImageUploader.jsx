@@ -42,7 +42,7 @@ export default function ImageUploader({
         transition-all cursor-pointer overflow-hidden
         ${isDark 
           ? 'border-white/10 bg-white/5 hover:bg-white/[0.08] hover:border-[#00A3FF]/50' 
-          : 'border-slate-200 bg-slate-50 hover:bg-slate-100 hover:border-[#00A3FF]/50'
+          : 'border-slate-200 bg-[var(--color-light-bg-secondary)] hover:bg-[var(--color-light-bg)] hover:border-[#00A3FF]/50'
         }
       `}>
         <input 
@@ -86,7 +86,7 @@ export default function ImageUploader({
         {/* Ícono upload */}
         <div className={`
           p-2 rounded-lg transition-colors
-          ${isDark ? 'bg-white/5 text-white/40' : 'bg-slate-200 text-slate-500'} 
+          ${isDark ? 'bg-white/5 text-white/40' : 'bg-[var(--color-light-bg)] text-slate-500'} 
           group-hover:text-[#00A3FF]
         `}>
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

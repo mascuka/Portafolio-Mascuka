@@ -7,7 +7,7 @@ import Home from './pages/Home';
 import Proyectos from './pages/Proyectos';
 import Habilidades from './pages/Habilidades';
 import Experiencia from './pages/Experiencia';
-import Footer from './components/Footer'; // Asegúrate de crear este archivo
+import Footer from './components/Footer';
 
 function AppContent() {
   const [data, setData] = useState(null);

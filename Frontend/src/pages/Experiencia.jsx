@@ -291,7 +291,7 @@ export default function Experiencia({ data, onUpdate }) {
               <button 
                 onClick={editHeaderModal.open} 
                 className={`p-2 rounded-lg transition-all opacity-60 hover:opacity-100 ${
-                  isDark ? 'bg-white/5 hover:bg-white/10 text-white/60' : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
+                  isDark ? 'bg-white/5 hover:bg-white/10 text-white/60' : 'bg-[var(--color-light-bg-tertiary)] hover:bg-[var(--color-light-bg-secondary)] text-[var(--color-light-text-secondary)]'
                 }`}
               >
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -364,7 +364,7 @@ export default function Experiencia({ data, onUpdate }) {
                     className={`p-2.5 sm:p-3 rounded-full transition-all ${
                       isDark 
                         ? 'bg-white/5 hover:bg-white/10 text-white/60 hover:text-white disabled:opacity-30' 
-                        : 'bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-900 disabled:opacity-30'
+                        : 'bg-[var(--color-light-bg-tertiary)] hover:bg-[var(--color-light-bg-secondary)] text-[var(--color-light-text-secondary)] hover:text-[var(--color-light-text-primary)] disabled:opacity-30'
                     }`}
                   >
                     <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -387,7 +387,7 @@ export default function Experiencia({ data, onUpdate }) {
                         className={`h-1.5 rounded-full transition-all duration-300 ${
                           currentIndex === idx
                             ? 'bg-[#0078C8] w-8' 
-                            : (isDark ? 'bg-white/10 w-2 hover:w-3 hover:bg-white/20' : 'bg-slate-200 w-2 hover:w-3 hover:bg-slate-300')
+                            : (isDark ? 'bg-white/10 w-2 hover:w-3 hover:bg-white/20' : 'bg-[var(--color-light-border)] w-2 hover:w-3 hover:bg-[var(--color-light-border-secondary)]')
                         }`} 
                       />
                     ))}
@@ -399,7 +399,7 @@ export default function Experiencia({ data, onUpdate }) {
                     className={`p-2.5 sm:p-3 rounded-full transition-all ${
                       isDark 
                         ? 'bg-white/5 hover:bg-white/10 text-white/60 hover:text-white disabled:opacity-30' 
-                        : 'bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-900 disabled:opacity-30'
+                        : 'bg-[var(--color-light-bg-tertiary)] hover:bg-[var(--color-light-bg-secondary)] text-[var(--color-light-text-secondary)] hover:text-[var(--color-light-text-primary)] disabled:opacity-30'
                     }`}
                   >
                     <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -537,7 +537,7 @@ function ExperienceCard({ exp, index, isDark, isAdmin, onEdit, onRemove, showCon
       <div className={`rounded-2xl p-6 sm:p-8 transition-all duration-500 border hover:-translate-y-1 ${
         isDark 
           ? 'bg-white/[0.02] border-white/10 hover:border-[#0078C8]/30' 
-          : 'bg-white border-slate-200 hover:border-[#0078C8]/30 shadow-sm hover:shadow-lg'
+          : 'bg-[var(--color-light-bg-secondary)] border-[var(--color-light-border)] hover:border-[#0078C8]/30 shadow-sm hover:shadow-lg'
       }`}>
         <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4 sm:gap-6">
           <div className="flex-1 space-y-3 sm:space-y-4">
@@ -574,7 +574,7 @@ function ExperienceCard({ exp, index, isDark, isAdmin, onEdit, onRemove, showCon
           <div className={`flex-shrink-0 px-4 sm:px-5 py-2 sm:py-2.5 rounded-full text-xs sm:text-sm font-bold border ${
             isDark 
               ? 'bg-white/5 text-slate-400 border-white/10' 
-              : 'bg-slate-100 text-slate-600 border-slate-200'
+              : 'bg-[var(--color-light-bg-tertiary)] text-[var(--color-light-text-secondary)] border-[var(--color-light-border)]'
           }`}>
             {exp.period}
           </div>
@@ -583,7 +583,7 @@ function ExperienceCard({ exp, index, isDark, isAdmin, onEdit, onRemove, showCon
         {/* BOTONES ADMIN - ESTILO HABILIDADES */}
         {isAdmin && (
           <div className={`flex gap-2 mt-6 pt-6 border-t opacity-0 group-hover:opacity-100 transition-all duration-300 ${
-            isDark ? 'border-white/5' : 'border-slate-200'
+            isDark ? 'border-white/5' : 'border-[var(--color-light-border)]'
           }`}>
             <button 
               onClick={onEdit} 
