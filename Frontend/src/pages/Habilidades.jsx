@@ -9,6 +9,8 @@ import Textarea from '../components/ui/Textarea';
 import Button from '../components/ui/Button';
 import SectionWrapper from '../components/SectionWrapper';
 import { getSmallInputClass } from '../constants/styles';
+import { TECNOLOGIAS, iconoTecnologia } from '../constants/tecnologias';
+import { calcularCambiosCV } from '../constants/cambiosCV';
 
 const EMPTY_SECTIONS = [];
 
@@ -72,14 +74,22 @@ export default function Habilidades({ data, onUpdate }) {
     const container = containerRefs.current[sectionIndex];
     if (!container) return 6;
 
-    // Íconos de 92px con 12px de separación (iguales en los dos modos)
-    const cardWidth = 92;
+    // Íconos de 88px con 12px de separación (iguales en los dos modos)
+    const cardWidth = 88;
     const gap = 12;
-    
-    // Se descuenta el px-2 del contenedor para que los íconos no bajen de fila
-    const availableWidth = container.offsetWidth - 16;
-    const cardsPerRow = Math.floor((availableWidth + gap) / (cardWidth + gap));
-    
+    const anchoContenedor = container.offsetWidth;
+
+    // Sin carrusel: se descuenta el px-2 del contenedor para que no bajen de fila
+    const cardsPerRow = Math.floor((anchoContenedor - 16 + gap) / (cardWidth + gap));
+
+    // Con carrusel: cada flecha (32px) va sobre el borde del contenedor y se
+    // deja 4px de aire hasta el primer ícono
+    const section = sections[sectionIndex];
+    const total = section?.skills?.length || 0;
+    if (total > cardsPerRow * (section?.rows || 1)) {
+      return Math.max(1, Math.floor((anchoContenedor - 2 * 36 + gap) / (cardWidth + gap)));
+    }
+
     return Math.max(1, cardsPerRow);
   };
 
@@ -618,6 +628,20 @@ export default function Habilidades({ data, onUpdate }) {
     editSkillModal.close();
   };
 
+  // Habilidades del CV que todavía faltan (null si ya está todo aplicado)
+  const cambiosCV = isAdmin ? calcularCambiosCV(sections) : null;
+
+  const aplicarCambiosCV = async () => {
+    if (!cambiosCV) return;
+    const ok = window.confirm(`Se van a aplicar estos cambios:\n\n• ${cambiosCV.resumen.join('\n• ')}`);
+    if (!ok) return;
+    try {
+      await onUpdate({ sections: cambiosCV.secciones, header: data?.header || headerData });
+    } catch {
+      alert('No se pudieron aplicar los cambios');
+    }
+  };
+
   const handleSaveHeader = async () => {
     try {
       const textsToTranslate = [headerData.title];
@@ -728,7 +752,16 @@ export default function Habilidades({ data, onUpdate }) {
           
           {isAdmin && (
             <div className="absolute right-0 flex items-center gap-2">
-              <button 
+              {cambiosCV && (
+                <button
+                  onClick={aplicarCambiosCV}
+                  title={cambiosCV.resumen.join('\n')}
+                  className="px-4 py-2 rounded-lg text-[9px] font-bold uppercase tracking-wider transition-all claro-btn-suave bg-acento/10 text-acento"
+                >
+                  Aplicar CV
+                </button>
+              )}
+              <button
                 onClick={() => openSectionModal()}
                 className="px-4 py-2 rounded-lg text-[9px] font-bold uppercase tracking-wider transition-all claro-btn-oscuro bg-acento text-white hover:bg-acento-hover opacity-60 hover:opacity-100"
               >
@@ -861,7 +894,7 @@ export default function Habilidades({ data, onUpdate }) {
                       <>
                         <button 
                           onClick={() => handleNavigation(sectionIndex, 'prev')} 
-                          className="absolute -left-3 md:-left-10 top-1/2 -translate-y-1/2 z-30 p-2 claro-flecha rounded-full bg-acento text-white shadow-lg hover:scale-110 transition-all"
+                          className="absolute left-0 top-1/2 -translate-y-1/2 z-30 p-2 claro-flecha rounded-full bg-acento text-white shadow-lg hover:scale-110 transition-all"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M15 19l-7-7 7-7" />
@@ -869,7 +902,7 @@ export default function Habilidades({ data, onUpdate }) {
                         </button>
                         <button 
                           onClick={() => handleNavigation(sectionIndex, 'next')} 
-                          className="absolute -right-3 md:-right-10 top-1/2 -translate-y-1/2 z-30 p-2 claro-flecha rounded-full bg-acento text-white shadow-lg hover:scale-110 transition-all"
+                          className="absolute right-0 top-1/2 -translate-y-1/2 z-30 p-2 claro-flecha rounded-full bg-acento text-white shadow-lg hover:scale-110 transition-all"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M9 5l7 7-7 7" />
@@ -938,6 +971,12 @@ export default function Habilidades({ data, onUpdate }) {
                                   }`}>
                                     {skill.name}
                                   </span>
+
+                                  {skill.enFormacion && (
+                                    <span className="claro-skill-formacion -mt-2 text-[11px] leading-none">
+                                      {lang === 'ES' ? 'en formación' : 'learning'}
+                                    </span>
+                                  )}
 
                                   {isAdmin && (
                                     <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 flex gap-1.5 opacity-0 group-hover/card:opacity-100 transition-all duration-300 z-30">
@@ -1052,7 +1091,31 @@ export default function Habilidades({ data, onUpdate }) {
               <button onClick={() => setSkillForm({...skillForm, iconType: 'upload'})} className={`flex-1 py-2 text-[10px] rounded ${skillForm.iconType === 'upload' ? 'bg-acento text-white' : 'bg-slate-100'}`}>SUBIR</button>
             </div>
             {skillForm.iconType === 'url' ? (
-              <Input placeholder="URL del ícono" value={skillForm.icon} onChange={e => setSkillForm({...skillForm, icon: e.target.value})} />
+              <div className="space-y-2">
+                <Input placeholder="URL del ícono" value={skillForm.icon} onChange={e => setSkillForm({...skillForm, icon: e.target.value})} />
+                <p className={`text-[10px] ${isDark ? 'text-white/60' : 'text-slate-500'}`}>O elegí uno de los íconos guardados en el portfolio:</p>
+                <div className="grid grid-cols-7 sm:grid-cols-9 gap-1.5">
+                  {TECNOLOGIAS.map(tec => {
+                    const icono = iconoTecnologia(tec.id);
+                    const elegido = skillForm.icon === icono;
+                    return (
+                      <button
+                        key={tec.id}
+                        type="button"
+                        title={tec.nombre}
+                        aria-label={tec.nombre}
+                        aria-pressed={elegido}
+                        onClick={() => setSkillForm({ ...skillForm, icon: icono, name: skillForm.name || tec.nombre })}
+                        className={`claro-icono-opcion aspect-square p-1.5 rounded-lg border transition-colors ${
+                          elegido ? 'border-acento' : (isDark ? 'border-white/10 hover:border-white/30' : 'border-slate-200 hover:border-slate-400')
+                        }`}
+                      >
+                        <img src={icono} alt="" className="w-full h-full object-contain" />
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
             ) : (
               <div className="border-2 border-dashed rounded-lg p-3 text-center">
                 <input type="file" accept="image/*" onChange={(e) => handleFileChange(e.target.files[0], 'icon')} className="hidden" id="skill-icon-up" />
@@ -1062,6 +1125,18 @@ export default function Habilidades({ data, onUpdate }) {
               </div>
             )}
           </div>
+
+          <label className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer ${isDark ? 'border-slate-700 bg-slate-800/30' : 'border-slate-200 bg-slate-50'}`}>
+            <input
+              type="checkbox"
+              checked={!!skillForm.enFormacion}
+              onChange={e => setSkillForm({ ...skillForm, enFormacion: e.target.checked })}
+              className="w-4 h-4"
+            />
+            <span className={`text-xs font-bold uppercase ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+              En formación <span className="font-normal normal-case">(se muestra "en formación" debajo del nombre)</span>
+            </span>
+          </label>
 
           <div className={`p-3 rounded-lg border transition-all ${
             skillForm.hasCertificate 

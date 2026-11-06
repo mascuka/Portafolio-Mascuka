@@ -8,6 +8,9 @@ import Input from '../components/ui/Input';
 import Textarea from '../components/ui/Textarea';
 import Button from '../components/ui/Button';
 import SectionWrapper from '../components/SectionWrapper';
+import ProyectoDetalle from '../components/ProyectoDetalle';
+import { TECNOLOGIAS, iconoTecnologia, buscarTecnologia } from '../constants/tecnologias';
+import { calcularCambiosProyectos } from '../constants/cambiosProyectos';
 
 // Función para detectar si una URL es un video
 const isVideo = (url) => {
@@ -27,7 +30,6 @@ export default function Proyectos({ projects, onUpdate }) {
   const [editingId, setEditingId] = useState(null);
   const [selectedProject, setSelectedProject] = useState(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [techCarouselIndex, setTechCarouselIndex] = useState(0);
   const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? document.documentElement.clientWidth : 1024);
   const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0, message: '' });
   
@@ -38,6 +40,7 @@ export default function Proyectos({ projects, onUpdate }) {
     imageFiles: [],
     imagePublicIds: [],
     demo: '',
+    repo: '',
     row: 1,
     order: null,
     technologies: [],
@@ -287,6 +290,7 @@ const cardsPerRow = Math.max(1, Math.min(4, Math.floor((anchoContenido + 16) / (
       imageFiles: existingImages.map(() => null), // null para cada imagen existente
       imagePublicIds: project.imagePublicIds || (project.imagePublicId ? [project.imagePublicId] : []),
       demo: project.demo || '',
+      repo: project.repo || '',
       row: project.row || 1,
       order: project.order !== null && project.order !== undefined ? project.order : null,
       technologies: project.technologies || [],
@@ -305,6 +309,7 @@ const cardsPerRow = Math.max(1, Math.min(4, Math.floor((anchoContenido + 16) / (
       imageFiles: [],
       imagePublicIds: [],
       demo: '',
+      repo: '',
       row: defaultRow,
       order: getRandomUnusedOrderForRow(defaultRow),
       technologies: [],
@@ -406,6 +411,7 @@ const cardsPerRow = Math.max(1, Math.min(4, Math.floor((anchoContenido + 16) / (
         image: imageUrls[0],
         imagePublicId: imagePublicIds[0],
         demo: formData.demo, 
+        repo: formData.repo || '',
         titleEN: tEN, 
         descriptionEN: dEN,
         row: formData.row,
@@ -437,6 +443,20 @@ const cardsPerRow = Math.max(1, Math.min(4, Math.floor((anchoContenido + 16) / (
       console.error(error);
       alert('Error al guardar el proyecto');
       setUploadProgress({ current: 0, total: 0, message: '' });
+    }
+  };
+
+  // Datos pendientes de los proyectos (null si ya está todo aplicado)
+  const cambiosProyectos = isAdmin ? calcularCambiosProyectos(projectsList) : null;
+
+  const aplicarCambiosProyectos = async () => {
+    if (!cambiosProyectos) return;
+    const ok = window.confirm(`Se van a aplicar estos cambios:\n\n• ${cambiosProyectos.resumen.join('\n• ')}`);
+    if (!ok) return;
+    try {
+      await onUpdate({ list: cambiosProyectos.proyectos, header: headerData });
+    } catch {
+      alert('No se pudieron aplicar los cambios');
     }
   };
 
@@ -529,19 +549,7 @@ const cardsPerRow = Math.max(1, Math.min(4, Math.floor((anchoContenido + 16) / (
   const openImageViewer = (project, imageIndex = 0) => {
     setSelectedProject(project);
     setCurrentImageIndex(imageIndex);
-    setTechCarouselIndex(0);
     imageViewModal.open();
-  };
-
-  const navigateImage = (direction) => {
-    const images = selectedProject?.images || [selectedProject?.image];
-    const total = images.length;
-    
-    if (direction === 'next') {
-      setCurrentImageIndex((prev) => (prev + 1) % total);
-    } else {
-      setCurrentImageIndex((prev) => (prev - 1 + total) % total);
-    }
   };
 
   const rowsData = getProjectsByRow();
@@ -574,7 +582,16 @@ const cardsPerRow = Math.max(1, Math.min(4, Math.floor((anchoContenido + 16) / (
           
           {isAdmin && (
             <div className="absolute right-0 flex items-center gap-2">
-              <button 
+              {cambiosProyectos && (
+                <button
+                  onClick={aplicarCambiosProyectos}
+                  title={cambiosProyectos.resumen.join('\n')}
+                  className="px-3 sm:px-4 py-2 rounded-lg text-[8px] sm:text-[9px] font-bold uppercase tracking-wider transition-all claro-btn-suave bg-acento/10 text-acento"
+                >
+                  Aplicar cambios
+                </button>
+              )}
+              <button
                 onClick={handleAdd}
                 className="px-3 sm:px-4 py-2 rounded-lg text-[8px] sm:text-[9px] font-bold uppercase tracking-wider transition-all claro-btn-oscuro bg-acento text-white hover:bg-acento-hover opacity-60 hover:opacity-100"
               >
@@ -695,8 +712,8 @@ const cardsPerRow = Math.max(1, Math.min(4, Math.floor((anchoContenido + 16) / (
             label="Descripción (Español)"
             value={formData.description}
             onChange={(e) => setFormData({...formData, description: e.target.value})}
-            rows={3}
-            helper="Se traducirá automáticamente al inglés"
+            rows={8}
+            helper="Se traducirá al inglés. En la tarjeta se ve el comienzo y al abrir el proyecto, completa. Podés separar párrafos con una línea en blanco y usar **negrita** (por ejemplo: **Mi rol:** …)."
           />
           <div className="space-y-3">
             <label className="text-[10px] font-black uppercase tracking-widest text-acento">
@@ -816,6 +833,7 @@ const cardsPerRow = Math.max(1, Math.min(4, Math.floor((anchoContenido + 16) / (
           </div>
 
           <Input label="URL del Demo" value={formData.demo} onChange={(e) => setFormData({...formData, demo: e.target.value})} placeholder="https://..." />
+          <Input label="URL del código (opcional)" value={formData.repo} onChange={(e) => setFormData({...formData, repo: e.target.value})} placeholder="https://github.com/..." helper='Si la cargás, aparece el botón "Ver código" al abrir el proyecto' />
           
           {/* Tecnologías Utilizadas */}
           <div className="space-y-3">
@@ -823,6 +841,32 @@ const cardsPerRow = Math.max(1, Math.min(4, Math.floor((anchoContenido + 16) / (
               Tecnologías Utilizadas (Opcional)
             </label>
             
+            {/* Íconos guardados en el portfolio: clic para agregar o quitar */}
+            <div className={`rounded-xl p-3 border ${isDark ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-slate-50'}`}>
+              <p className={`text-[10px] mb-2 ${isDark ? 'text-white/60' : 'text-slate-500'}`}>Elegí de los íconos del portfolio (clic para agregar o quitar):</p>
+              <div className="grid grid-cols-6 sm:grid-cols-9 gap-1.5">
+                {TECNOLOGIAS.map(tec => {
+                  const indice = formData.technologyNames.findIndex(nombre => buscarTecnologia(nombre)?.id === tec.id);
+                  const elegido = indice !== -1;
+                  return (
+                    <button
+                      key={tec.id}
+                      type="button"
+                      title={tec.nombre}
+                      aria-label={tec.nombre}
+                      aria-pressed={elegido}
+                      onClick={() => elegido ? removeTechnology(indice) : handleTechnologyUrlAdd(iconoTecnologia(tec.id), tec.nombre)}
+                      className={`claro-icono-opcion aspect-square p-1.5 rounded-lg border transition-colors ${
+                        elegido ? 'border-acento' : (isDark ? 'border-white/10 hover:border-white/30' : 'border-slate-200 hover:border-slate-400')
+                      }`}
+                    >
+                      <img src={iconoTecnologia(tec.id)} alt="" className="w-full h-full object-contain" />
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
             {/* Opción 1: Subir archivos */}
             <div className={`border-2 border-dashed rounded-xl p-3 text-center cursor-pointer transition-all ${
               isDark ? 'border-white/10 hover:border-acento/40 bg-white/5' : 'border-slate-200 hover:border-acento/40 bg-slate-50'
@@ -986,147 +1030,15 @@ const cardsPerRow = Math.max(1, Math.min(4, Math.floor((anchoContenido + 16) / (
         </div>
       </Modal>
 
-      {/* Modal Visor de Imágenes */}
-      <Modal 
-        isOpen={imageViewModal.isOpen} 
-        onClose={imageViewModal.close} 
-        centered
-        maxWidth="max-w-[90vw]"
-        hideHeader
-      >
-        {selectedProject && (
-          <div className="relative w-full h-[80vh] flex flex-col items-center">
-            <button 
-              onClick={imageViewModal.close}
-              className="absolute top-0 -right-2 md:right-2 p-2 rounded-full transition-all duration-300 z-[70] shadow-xl backdrop-blur-md bg-red-500 text-white"
-            >
-              <svg className="w-6 h-6 sm:w-7 sm:h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-
-            <div className="mb-3 sm:mb-4 text-center px-4">
-              <h3 className={`text-lg sm:text-xl md:text-2xl font-black ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                {lang === 'ES' ? selectedProject.title : (selectedProject.titleEN || selectedProject.title)}
-              </h3>
-            </div>
-
-            <div className="relative flex-1 w-full bg-black/5 rounded-3xl overflow-hidden flex items-center justify-center">
-              {isVideo((selectedProject.images && selectedProject.images.length > 0) ? selectedProject.images[currentImageIndex] : selectedProject.image) ? (
-                <video 
-                  src={(selectedProject.images && selectedProject.images.length > 0) ? selectedProject.images[currentImageIndex] : selectedProject.image}
-                  controls
-                  autoPlay
-                  className="max-w-full max-h-full object-contain select-none"
-                />
-              ) : (
-                <img 
-                  src={(selectedProject.images && selectedProject.images.length > 0) ? selectedProject.images[currentImageIndex] : selectedProject.image} 
-                  alt="Project Gallery"
-                  className="max-w-full max-h-full object-contain select-none"
-                />
-              )}
-              
-              {(selectedProject.images?.length > 1) && (
-                <>
-                  <button
-                    onClick={() => navigateImage('prev')}
-                    className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 bg-black/30 hover:bg-acento text-white w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center transition-all z-50 backdrop-blur-md"
-                  >
-                    <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M15 19l-7-7 7-7" />
-                    </svg>
-                  </button>
-                  <button
-                    onClick={() => navigateImage('next')}
-                    className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 bg-black/30 hover:bg-acento text-white w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center transition-all z-50 backdrop-blur-md"
-                  >
-                    <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M9 5l7 7-7 7" />
-                    </svg>
-                  </button>
-                </>
-              )}
-            </div>
-
-            {/* Tecnologías - Carrusel Infinito */}
-            {selectedProject.technologies && selectedProject.technologies.length > 0 && (
-              <div className="mt-3 px-4 sm:px-6 pb-3 w-full">
-                {selectedProject.technologies.length <= 6 ? (
-                  // Si hay 6 o menos, mostrar todas sin carrusel
-                  <div className="flex flex-wrap gap-2.5 sm:gap-3 justify-center items-center max-w-xl mx-auto">
-                    {selectedProject.technologies.map((tech, idx) => (
-                      <div 
-                        key={idx} 
-                        className="transition-all duration-300 hover:scale-110"
-                        title={selectedProject.technologyNames?.[idx] || ''}
-                      >
-                        <div className="w-8 h-8 sm:w-10 sm:h-10 p-1.5">
-                          <img 
-                            src={tech} 
-                            alt={selectedProject.technologyNames?.[idx] || ''} 
-                            className="w-full h-full object-contain"
-                          />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  // Si hay más de 6, mostrar carrusel infinito
-                  <div className="relative max-w-xl mx-auto">
-                    <button
-                      onClick={() => {
-                        setTechCarouselIndex(prev => {
-                          const newIndex = prev - 1;
-                          return newIndex < 0 ? selectedProject.technologies.length - 1 : newIndex;
-                        });
-                      }}
-                      className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-3 z-10 p-2 claro-flecha rounded-full bg-acento text-white hover:scale-110 transition-all"
-                    >
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
-                      </svg>
-                    </button>
-
-                    <div className="flex gap-2.5 sm:gap-3 justify-center items-center overflow-hidden">
-                      {Array.from({ length: 6 }).map((_, idx) => {
-                        const techIndex = (techCarouselIndex + idx) % selectedProject.technologies.length;
-                        const tech = selectedProject.technologies[techIndex];
-                        return (
-                          <div 
-                            key={idx} 
-                            className="transition-all duration-300 hover:scale-110"
-                            title={selectedProject.technologyNames?.[techIndex] || ''}
-                          >
-                            <div className="w-8 h-8 sm:w-10 sm:h-10 p-1.5">
-                              <img 
-                                src={tech} 
-                                alt={selectedProject.technologyNames?.[techIndex] || ''} 
-                                className="w-full h-full object-contain"
-                              />
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-
-                    <button
-                      onClick={() => {
-                        setTechCarouselIndex(prev => (prev + 1) % selectedProject.technologies.length);
-                      }}
-                      className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-3 z-10 p-2 claro-flecha rounded-full bg-acento text-white hover:scale-110 transition-all"
-                    >
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-                      </svg>
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        )}
-      </Modal>
+      {/* Detalle del proyecto: imágenes, descripción completa y tecnologías */}
+      {imageViewModal.isOpen && selectedProject && (
+        <ProyectoDetalle
+          project={selectedProject}
+          initialIndex={currentImageIndex}
+          lang={lang}
+          onClose={imageViewModal.close}
+        />
+      )}
     </SectionWrapper>
   );
 }
@@ -1521,7 +1433,7 @@ function ProjectCard({ project, isDark, lang, isAdmin, onEdit, onDelete, onImage
   const isCurrentVideo = isVideo(currentMedia);
 
   return (
-    <div className="group relative h-full min-h-[380px] sm:min-h-[420px] flex flex-col">
+    <div className="group relative h-full min-h-[380px] sm:min-h-[420px] flex flex-col cursor-pointer" onClick={() => onImageClick(currentImgIndex)}>
       <div className={`claro-proyecto relative h-full flex flex-col rounded-3xl border overflow-hidden transition-all duration-700 ${
         isDark 
           ? 'bg-[#0F172A]/40 border-white/5 group-hover:border-acento/40 shadow-2xl shadow-black/50' 
@@ -1529,7 +1441,18 @@ function ProjectCard({ project, isDark, lang, isAdmin, onEdit, onDelete, onImage
       }`}>
         
         {/* Imagen/Video - Ajuste de aspect ratio en mobile para dar espacio */}
-        <div className="claro-proyecto-imagen relative overflow-hidden aspect-video sm:aspect-[16/9] flex-shrink-0 cursor-pointer" onClick={() => onImageClick(currentImgIndex)}>
+        <div
+          className="claro-proyecto-imagen relative overflow-hidden aspect-video sm:aspect-[16/9] flex-shrink-0"
+          role="button"
+          tabIndex={0}
+          aria-label={`${lang === 'ES' ? 'Ver detalles de' : 'View details of'} ${lang === 'ES' ? project.title : (project.titleEN || project.title)}`}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              onImageClick(currentImgIndex);
+            }
+          }}
+        >
           {isCurrentVideo ? (
             <video 
               src={currentMedia}
@@ -1611,7 +1534,7 @@ function ProjectCard({ project, isDark, lang, isAdmin, onEdit, onDelete, onImage
 
           {/* Botones - Siempre visibles al final con espacio flexible arriba */}
           <div className="mt-auto flex items-center gap-2 flex-shrink-0">
-            <a href={project.demo} target="_blank" rel="noopener noreferrer" className={`claro-btn-proyecto flex-1 py-3 px-3 rounded-xl font-black uppercase tracking-[0.15em] text-[10px] transition-all duration-300 flex items-center justify-center gap-2 text-white ${
+            <a href={project.demo} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className={`claro-btn-proyecto flex-1 py-3 px-3 rounded-xl font-black uppercase tracking-[0.15em] text-[10px] transition-all duration-300 flex items-center justify-center gap-2 text-white ${
               isDark ? 'bg-acento hover:bg-acento-hover shadow-lg shadow-acento/20' : 'bg-acento/60 hover:bg-acento'
             }`}>
               <span>{lang === 'ES' ? 'Ver Proyecto' : 'View Project'}</span>
@@ -1619,7 +1542,7 @@ function ProjectCard({ project, isDark, lang, isAdmin, onEdit, onDelete, onImage
             </a>
             
             {isAdmin && (
-              <div className="flex gap-1.5 flex-shrink-0">
+              <div className="flex gap-1.5 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
                 <button onClick={onEdit} className="p-2.5 rounded-xl claro-btn-suave bg-acento/10 text-acento hover:bg-acento hover:text-white transition-all">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" strokeWidth="2" /></svg>
                 </button>

@@ -921,7 +921,7 @@ body .claro-card.skill-section-card {
 }
 
 body .claro-skill-item {
-  width: 92px;
+  width: 88px;
   height: auto;
 }
 
@@ -1022,4 +1022,422 @@ body:not(.light) .bg-acento.text-white,
 body:not(.light) .text-white.hover\:bg-acento:hover,
 body:not(.light) .hover\:bg-acento.hover\:text-white:hover {
   color: #1F1E1D;
+}
+
+/* ============================================
+   DETALLE DE PROYECTO (panel estilo publicación)
+   Colores de las variables --tema-*: sirve para los dos modos
+   ============================================ */
+
+.detalle-fondo {
+  background: rgba(20, 20, 19, 0.72);
+  backdrop-filter: blur(6px);
+}
+
+.detalle-panel {
+  background: var(--tema-superficie);
+  color: var(--tema-texto);
+}
+
+/* Las imágenes van sobre fondo oscuro en los dos modos, como una galería */
+.detalle-media {
+  background: #1A1A19;
+}
+
+.detalle-flecha {
+  position: absolute;
+  top: 50%;
+  translate: 0 -50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(250, 249, 245, 0.92);
+  color: #141413;
+}
+
+.detalle-flecha:hover {
+  background: #FAF9F5;
+}
+
+.detalle-contador {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(20, 20, 19, 0.65);
+  color: #FAF9F5;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.detalle-punto {
+  width: 7px;
+  height: 7px;
+  padding: 0;
+  border-radius: 50%;
+  background: rgba(250, 249, 245, 0.45);
+}
+
+.detalle-punto.activo {
+  background: #FAF9F5;
+}
+
+.detalle-cabecera {
+  padding: 22px 24px 18px;
+  border-bottom: 1px solid var(--tema-linea);
+}
+
+.detalle-titulo {
+  font-size: 26px;
+  line-height: 1.2;
+  color: var(--tema-texto);
+}
+
+.detalle-cerrar {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--tema-pildora);
+  color: var(--tema-texto);
+}
+
+.detalle-cerrar:hover {
+  background: var(--tema-suave-hover);
+}
+
+.detalle-cuerpo {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 20px 24px;
+}
+
+.detalle-descripcion {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--tema-texto-suave);
+}
+
+.detalle-descripcion strong {
+  font-weight: 600;
+  color: var(--tema-texto);
+}
+
+.detalle-etiqueta {
+  margin-bottom: 10px;
+  font-family: var(--font-sans-claro);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--tema-texto-suave);
+}
+
+.detalle-tecnologia {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px 6px 6px;
+  border-radius: 999px;
+  background: var(--tema-pildora);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--tema-texto);
+}
+
+.detalle-tecnologia img {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+}
+
+/* En oscuro, plaquita clara para que se vean los logos negros (GitHub, Next.js, Vercel) */
+body:not(.light) .detalle-tecnologia img {
+  padding: 2px;
+  border-radius: 6px;
+  background: #ECEAE1;
+}
+
+.detalle-pie {
+  position: sticky;
+  bottom: 0;
+  padding: 16px 24px 20px;
+  border-top: 1px solid var(--tema-linea);
+  background: var(--tema-superficie);
+}
+
+.detalle-boton {
+  display: inline-flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 44px;
+  border-radius: 10px;
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.detalle-boton.principal {
+  background: var(--tema-boton);
+  color: var(--tema-boton-texto);
+}
+
+.detalle-boton.principal:hover {
+  background: var(--tema-boton-hover);
+}
+
+.detalle-boton.secundario {
+  border: 1px solid var(--tema-linea);
+  color: var(--tema-texto);
+}
+
+.detalle-boton.secundario:hover {
+  border-color: var(--tema-deco);
+}
+
+@media (min-width: 768px) {
+  .detalle-panel {
+    border: 1px solid var(--tema-linea);
+    border-radius: 16px;
+  }
+
+  .detalle-info {
+    border-left: 1px solid var(--tema-linea);
+  }
+}
+
+/* Zoom de la imagen: clic para ampliar en el punto elegido y recorrerla con el mouse */
+.detalle-imagen {
+  cursor: zoom-in;
+  transition: transform 200ms ease-out;
+}
+
+.detalle-media.con-zoom {
+  touch-action: none;
+}
+
+.detalle-media.con-zoom .detalle-imagen {
+  cursor: zoom-out;
+}
+
+.detalle-flecha,
+.detalle-contador,
+.detalle-boton-zoom {
+  z-index: 10;
+}
+
+.detalle-boton-zoom {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(250, 249, 245, 0.92);
+  color: #141413;
+}
+
+.detalle-boton-zoom:hover {
+  background: #FAF9F5;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .detalle-imagen {
+    transition: none;
+  }
+}
+
+/* Tecnologías fijas al pie de la columna, sobre los botones */
+.detalle-tecnologias {
+  padding: 16px 24px 18px;
+  border-top: 1px solid var(--tema-linea);
+}
+
+/* Ubicación e idiomas del inicio */
+body .claro-datos {
+  font-size: 15px;
+  color: var(--tema-texto-suave);
+}
+
+body .claro-datos svg {
+  color: var(--tema-deco);
+}
+
+/* "en formación" debajo del nombre de una habilidad */
+body .claro-skill-formacion {
+  color: var(--tema-texto-suave);
+  font-style: italic;
+}
+
+/* Selector de íconos del portfolio (editor de admin): plaquita en oscuro */
+body:not(.light) .claro-icono-opcion {
+  background: #ECEAE1;
+}
+
+/* ============================================
+   VENTANA DE CORREO (colores del tema)
+   ============================================ */
+
+.correo-fondo {
+  background: rgba(20, 20, 19, 0.72);
+  backdrop-filter: blur(6px);
+}
+
+.correo-panel {
+  overflow: hidden;
+  border: 1px solid var(--tema-linea);
+  border-radius: 16px;
+  background: var(--tema-superficie);
+  color: var(--tema-texto);
+}
+
+.correo-cabecera {
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--tema-linea);
+}
+
+.correo-titulo {
+  font-size: 24px;
+  line-height: 1.2;
+  color: var(--tema-texto);
+}
+
+.correo-cuerpo {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 22px 24px 24px;
+}
+
+.correo-etiqueta {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--tema-texto-suave);
+}
+
+.correo-para {
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: var(--tema-pildora);
+  font-size: 15px;
+  color: var(--tema-texto);
+}
+
+.correo-campo {
+  width: 100%;
+  padding: 11px 14px;
+  border: 1px solid var(--tema-linea);
+  border-radius: 10px;
+  background: var(--tema-fondo);
+  font-size: 15px;
+  color: var(--tema-texto);
+  outline: none;
+  transition: border-color 150ms ease-out, box-shadow 150ms ease-out;
+}
+
+textarea.correo-campo {
+  min-height: 130px;
+  resize: vertical;
+}
+
+.correo-campo::placeholder {
+  color: var(--tema-texto-suave);
+}
+
+.correo-campo:focus {
+  border-color: var(--tema-acento);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--tema-acento) 18%, transparent);
+}
+
+.correo-campo:focus-visible {
+  outline: none;
+}
+
+.correo-aviso {
+  padding: 12px 14px;
+  border-radius: 10px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--tema-texto);
+}
+
+.correo-aviso.exito {
+  background: color-mix(in srgb, #3E8E5C 16%, var(--tema-superficie));
+}
+
+.correo-aviso.error {
+  background: color-mix(in srgb, var(--tema-borrar) 16%, var(--tema-superficie));
+}
+
+.correo-aviso a {
+  font-weight: 600;
+  color: var(--tema-texto);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.correo-botones {
+  display: flex;
+  gap: 10px;
+  padding-top: 4px;
+}
+
+.correo-boton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 44px;
+  padding: 0 18px;
+  border-radius: 10px;
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.correo-boton.principal {
+  flex: 2;
+  background: var(--tema-boton);
+  color: var(--tema-boton-texto);
+}
+
+.correo-boton.principal:hover {
+  background: var(--tema-boton-hover);
+}
+
+.correo-boton.principal:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.correo-boton.secundario {
+  flex: 1;
+  border: 1px solid var(--tema-linea);
+  color: var(--tema-texto);
+}
+
+.correo-boton.secundario:hover {
+  border-color: var(--tema-deco);
 }

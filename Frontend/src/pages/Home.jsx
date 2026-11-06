@@ -2,7 +2,14 @@ import { useState, useEffect, useRef } from 'react';
 import { useApp } from '../context/useApp';
 import translate from 'translate';
 import emailjs from '@emailjs/browser';
-import { IconBrandWhatsapp, IconBrandLinkedin, IconMail, IconFileCv } from '@tabler/icons-react';
+import { IconBrandWhatsapp, IconBrandLinkedin, IconMail, IconFileCv, IconMapPin, IconLanguage, IconX, IconSend } from '@tabler/icons-react';
+
+// Datos del CV que se muestran en el inicio mientras no se carguen otros desde "Editar"
+const UBICACION_POR_DEFECTO = 'Córdoba, Argentina';
+const IDIOMAS_POR_DEFECTO = {
+  ES: 'Español nativo · Inglés básico · Alemán básico',
+  EN: 'Spanish (native) · English (basic) · German (basic)'
+};
 import ImageUploader from '../components/ImageUploader';
 import CVUploader from '../components/CVUploader';
 
@@ -13,6 +20,7 @@ export default function Home({ data, cvUrl, onUpdate, onUpdateCV }) {
     title: '', subtitle: '', description: '', image: '', imagePublicId: '',
     imageLight: '', imageLightPublicId: '',
     email: '', whatsapp: '', linkedin: '', cvPublicId: '',
+    location: '', languages: '',
     mailSuccessImage: '', mailSuccessPublicId: ''
   });
   // Qué foto de perfil se está editando: `image` es la del modo oscuro e
@@ -33,11 +41,20 @@ export default function Home({ data, cvUrl, onUpdate, onUpdateCV }) {
         imageLight: data.imageLight || '', imageLightPublicId: data.imageLightPublicId || '',
         whatsapp: data.whatsapp || '', linkedin: data.linkedin || '', email: data.email || '',
         cvPublicId: data.cvPublicId || '',
+        location: data.location || '', languages: data.languages || '',
         mailSuccessImage: data.mailSuccessImage || '',
         mailSuccessPublicId: data.mailSuccessPublicId || ''
       });
     }
   }, [data]);
+
+  // La ventana de correo se cierra con Esc
+  useEffect(() => {
+    if (!showMailModal) return;
+    const alPresionar = (e) => { if (e.key === 'Escape') setShowMailModal(false); };
+    document.addEventListener('keydown', alPresionar);
+    return () => document.removeEventListener('keydown', alPresionar);
+  }, [showMailModal]);
 
   // Función para borrar archivos físicamente del servidor (Cloudinary)
   const deletePhysicalFile = async (publicId) => {
@@ -74,12 +91,13 @@ export default function Home({ data, cvUrl, onUpdate, onUpdateCV }) {
 
     let translatedFields = {};
     try {
-      const [titleEN, subtitleEN, descriptionEN] = await Promise.all([
+      const [titleEN, subtitleEN, descriptionEN, languagesEN] = await Promise.all([
         translate(formData.title, { from: "es", to: "en" }),
         translate(formData.subtitle, { from: "es", to: "en" }),
-        translate(formData.description, { from: "es", to: "en" })
+        translate(formData.description, { from: "es", to: "en" }),
+        formData.languages ? translate(formData.languages, { from: "es", to: "en" }) : ''
       ]);
-      translatedFields = { titleEN, subtitleEN, descriptionEN };
+      translatedFields = { titleEN, subtitleEN, descriptionEN, languagesEN };
     } catch (error) {
       console.warn('No se pudieron traducir los textos; se guardarán sin traducción.', error);
     }
@@ -103,7 +121,7 @@ export default function Home({ data, cvUrl, onUpdate, onUpdateCV }) {
 
     emailjs.sendForm(SERVICE_ID, TEMPLATE_ID, mailForm.current, PUBLIC_KEY)
       .then(() => {
-        setMailStatus({ show: true, success: true, text: '¡MENSAJE ENVIADO!' });
+        setMailStatus({ show: true, success: true, text: lang === 'ES' ? '¡Mensaje enviado! Te respondo a la brevedad.' : 'Message sent! I will get back to you soon.' });
         setTimeout(() => {
           setShowMailModal(false);
           setMailStatus({ show: false, success: true, text: '' });
@@ -112,7 +130,7 @@ export default function Home({ data, cvUrl, onUpdate, onUpdateCV }) {
       })
       .catch((err) => {
         console.error('Error:', err);
-        setMailStatus({ show: true, success: false, text: 'ERROR AL ENVIAR' });
+        setMailStatus({ show: true, success: false, text: lang === 'ES' ? 'No se pudo enviar el mensaje.' : 'The message could not be sent.' });
       })
       .finally(() => setIsSending(false));
   };
@@ -147,6 +165,20 @@ export default function Home({ data, cvUrl, onUpdate, onUpdateCV }) {
             </div>
           </div>
 
+          {/* Ubicación e idiomas (si no se cargaron, se usan los del CV) */}
+          <ul className="claro-datos flex flex-wrap items-center gap-x-5 gap-y-2">
+            <li className="flex items-center gap-2">
+              <IconMapPin size={17} stroke={1.5} aria-hidden="true" />
+              {data?.location || UBICACION_POR_DEFECTO}
+            </li>
+            <li className="flex items-center gap-2">
+              <IconLanguage size={17} stroke={1.5} aria-hidden="true" />
+              {lang === 'ES'
+                ? (data?.languages || IDIOMAS_POR_DEFECTO.ES)
+                : (data?.languagesEN || IDIOMAS_POR_DEFECTO.EN)}
+            </li>
+          </ul>
+
           <p className={`claro-hero-texto max-w-xl text-lg leading-relaxed transition-colors duration-700 ${isDark ? 'text-slate-400' : 'text-slate-700'}`}>
             {lang === 'ES' ? data?.description : data?.descriptionEN}
           </p>
@@ -165,7 +197,7 @@ export default function Home({ data, cvUrl, onUpdate, onUpdateCV }) {
             )}
 
             {data?.email && (
-              <button onClick={() => setShowMailModal(true)} title="Enviar Correo" className={commonBtnClass}>
+              <button onClick={() => { setMailStatus({ show: false, success: true, text: '' }); setShowMailModal(true); }} title="Enviar Correo" className={commonBtnClass}>
                 <IconMail size={20} stroke={1.5} aria-hidden="true" />
               </button>
             )}
@@ -204,69 +236,75 @@ export default function Home({ data, cvUrl, onUpdate, onUpdateCV }) {
 
       {/* MODAL DE ENVÍO DE CORREO */}
       {showMailModal && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[600] p-4">
+        <div
+          className="correo-fondo fixed inset-0 z-[600] flex items-center justify-center p-4 animate-fadeIn"
+          onClick={(e) => { if (e.target === e.currentTarget) setShowMailModal(false); }}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="correo-titulo"
+        >
           {mailStatus.show && mailStatus.success && formData.mailSuccessImage ? (
-            <div className="flex flex-col items-center animate-in zoom-in duration-300">
-              <img 
-                src={formData.mailSuccessImage} 
-                alt="Success" 
-                className="max-w-[90vw] max-h-[80vh] object-contain rounded-2xl shadow-2xl shadow-blue-500/20"
+            <div className="flex flex-col items-center animate-slideUp">
+              <img
+                src={formData.mailSuccessImage}
+                alt={lang === 'ES' ? 'Mensaje enviado' : 'Message sent'}
+                className="max-w-[90vw] max-h-[80vh] object-contain rounded-2xl"
               />
-              <button 
-                onClick={() => setShowMailModal(false)}
-                className="mt-6 px-8 py-3 bg-white text-black font-black uppercase text-xs rounded-full hover:scale-105 transition-transform"
-              >
-                CERRAR
+              <button type="button" onClick={() => setShowMailModal(false)} className="correo-boton principal mt-6">
+                {lang === 'ES' ? 'Cerrar' : 'Close'}
               </button>
             </div>
           ) : (
-            <form ref={mailForm} onSubmit={handleSendEmail} className={`w-full max-w-lg rounded-3xl overflow-hidden shadow-2xl border ${isDark ? 'bg-[#0F172A] border-white/10' : 'bg-white border-slate-200'}`}>
-              <div className="bg-acento p-6 flex justify-between items-center text-white font-black text-[10px] uppercase tracking-widest">
-                <span>NUEVO CORREO</span>
-                <button type="button" onClick={() => setShowMailModal(false)} className="hover:rotate-90 transition-transform">✕</button>
-              </div>
-              
-              <div className="p-8 space-y-5">
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black uppercase text-gray-400 tracking-widest">Para:</label>
-                  <div className={`p-4 rounded-xl border text-sm font-medium ${isDark ? 'bg-white/5 border-white/5 text-white/40' : 'bg-gray-100 border-slate-200 text-slate-500'}`}>
-                    {formData.email || 'tu@correo.com'}
-                  </div>
+            <form ref={mailForm} onSubmit={handleSendEmail} className="correo-panel w-full max-w-lg animate-slideUp">
+              <header className="correo-cabecera flex items-center justify-between gap-4">
+                <h3 id="correo-titulo" className="correo-titulo">{lang === 'ES' ? 'Nuevo correo' : 'New message'}</h3>
+                <button type="button" onClick={() => setShowMailModal(false)} className="detalle-cerrar" aria-label={lang === 'ES' ? 'Cerrar' : 'Close'}>
+                  <IconX size={18} stroke={2} aria-hidden="true" />
+                </button>
+              </header>
+
+              <div className="correo-cuerpo">
+                <div>
+                  <span className="correo-etiqueta">{lang === 'ES' ? 'Para' : 'To'}</span>
+                  <div className="correo-para">{formData.email || 'tu@correo.com'}</div>
                 </div>
 
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black uppercase text-acento tracking-widest">De:</label>
-                  <input name="from_email" required type="email" placeholder="Ponga su correo aquí" className={`w-full p-4 rounded-xl border text-sm outline-none focus:border-acento transition-colors ${isDark ? 'bg-white/5 border-white/10 text-white' : 'bg-gray-50 border-slate-200'}`} />
-                </div>
+                <label className="block">
+                  <span className="correo-etiqueta">{lang === 'ES' ? 'Tu correo' : 'Your email'}</span>
+                  <input name="from_email" required type="email" placeholder={lang === 'ES' ? 'nombre@correo.com' : 'name@email.com'} className="correo-campo" />
+                </label>
 
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black uppercase text-acento tracking-widest">Asunto:</label>
-                  <input name="subject" required type="text" placeholder="Asunto del mensaje" className={`w-full p-4 rounded-xl border text-sm outline-none focus:border-acento transition-colors ${isDark ? 'bg-white/5 border-white/10 text-white' : 'bg-gray-50 border-slate-200'}`} />
-                </div>
+                <label className="block">
+                  <span className="correo-etiqueta">{lang === 'ES' ? 'Asunto' : 'Subject'}</span>
+                  <input name="subject" required type="text" placeholder={lang === 'ES' ? 'Asunto del mensaje' : 'Message subject'} className="correo-campo" />
+                </label>
 
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black uppercase text-acento tracking-widest">Texto:</label>
-                  <textarea name="message" required placeholder="Escriba su mensaje aquí..." className={`w-full p-4 rounded-xl border text-sm outline-none focus:border-acento h-32 resize-none transition-colors ${isDark ? 'bg-white/5 border-white/10 text-white' : 'bg-gray-50 border-slate-200'}`} />
-                </div>
-                
+                <label className="block">
+                  <span className="correo-etiqueta">{lang === 'ES' ? 'Mensaje' : 'Message'}</span>
+                  <textarea name="message" required placeholder={lang === 'ES' ? 'Escribí tu mensaje…' : 'Write your message…'} className="correo-campo" />
+                </label>
+
                 {mailStatus.show && (
-                  <div className={`p-4 rounded-xl text-[10px] font-bold text-center uppercase tracking-widest animate-pulse ${
-                    mailStatus.success 
-                      ? isDark 
-                        ? 'bg-green-500/10 text-green-500' 
-                        : 'bg-green-500/20 text-green-700 border-2 border-green-500/30'
-                      : isDark
-                        ? 'bg-red-500/10 text-red-500'
-                        : 'bg-red-500/20 text-red-700 border-2 border-red-500/30'
-                  }`}>
+                  <p className={`correo-aviso ${mailStatus.success ? 'exito' : 'error'}`} role="status">
                     {mailStatus.text}
-                  </div>
+                    {!mailStatus.success && formData.email && (
+                      <>
+                        {' '}{lang === 'ES' ? 'También podés escribirme a' : 'You can also write to me at'}{' '}
+                        <a href={`mailto:${formData.email}`}>{formData.email}</a>.
+                      </>
+                    )}
+                  </p>
                 )}
 
-                <div className="flex gap-4 pt-2">
-                  <button type="button" onClick={() => setShowMailModal(false)} className={`flex-1 py-4 border rounded-xl text-[10px] font-black tracking-widest transition-all ${isDark ? 'border-white/10 text-white hover:bg-white/5' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}>CANCELAR</button>
-                  <button disabled={isSending} type="submit" className="flex-[2] py-4 bg-acento text-white text-[10px] font-black tracking-widest rounded-xl hover:bg-acento-hover disabled:opacity-50 transition-all">
-                    {isSending ? 'ENVIANDO...' : 'ENVIAR MENSAJE'}
+                <div className="correo-botones">
+                  <button type="button" onClick={() => setShowMailModal(false)} className="correo-boton secundario">
+                    {lang === 'ES' ? 'Cancelar' : 'Cancel'}
+                  </button>
+                  <button disabled={isSending} type="submit" className="correo-boton principal">
+                    {isSending
+                      ? (lang === 'ES' ? 'Enviando…' : 'Sending…')
+                      : (lang === 'ES' ? 'Enviar mensaje' : 'Send message')}
+                    {!isSending && <IconSend size={16} stroke={2} aria-hidden="true" />}
                   </button>
                 </div>
               </div>
@@ -313,6 +351,16 @@ export default function Home({ data, cvUrl, onUpdate, onUpdateCV }) {
                     <div className="space-y-2">
                       <label className="text-[9px] font-black text-red-500 uppercase tracking-widest">Email</label>
                       <input className={`w-full bg-transparent border-b p-2 text-xs outline-none ${isDark ? 'border-white/10 text-white' : 'border-black/10 text-black'}`} value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} placeholder="tu@email.com" />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-[9px] font-black text-acento uppercase tracking-widest">Ubicación</label>
+                      <input className={`w-full bg-transparent border-b p-2 text-xs outline-none ${isDark ? 'border-white/10 text-white' : 'border-black/10 text-black'}`} value={formData.location} onChange={(e) => setFormData({...formData, location: e.target.value})} placeholder={UBICACION_POR_DEFECTO} />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[9px] font-black text-acento uppercase tracking-widest">Idiomas</label>
+                      <input className={`w-full bg-transparent border-b p-2 text-xs outline-none ${isDark ? 'border-white/10 text-white' : 'border-black/10 text-black'}`} value={formData.languages} onChange={(e) => setFormData({...formData, languages: e.target.value})} placeholder={IDIOMAS_POR_DEFECTO.ES} />
                     </div>
                   </div>
                 </div>
