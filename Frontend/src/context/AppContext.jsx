@@ -14,7 +14,7 @@ export const AppProvider = ({ children }) => {
   // Estados globales
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [isDark, setIsDark] = useState(true);
+  const [isDark, setIsDark] = useState(false); // siempre arranca en modo claro
   const [lang, setLang] = useState('ES');
   
   // Admin detection: true si alguna vez se logueó como admin
