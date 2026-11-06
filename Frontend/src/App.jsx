@@ -48,22 +48,29 @@ function AppContent() {
     }
   };
 
-  // Pantalla de carga profesional
+  // Pantalla de carga: colores del tema actual (variables --tema-* de index.css)
   if (loading) return (
-    <div className="h-screen w-full flex items-center justify-center bg-[#0A0E17]">
-      <div className="relative">
-        <div className="w-16 h-16 border-4 border-acento/20 rounded-full" />
-        <div className="absolute top-0 w-16 h-16 border-4 border-t-acento rounded-full animate-spin" />
+    <div
+      className="h-screen w-full flex flex-col items-center justify-center gap-5 bg-[var(--tema-fondo)]"
+      role="status"
+      aria-live="polite"
+    >
+      <div className="relative w-10 h-10">
+        <div className="absolute inset-0 rounded-full border-2 border-[var(--tema-linea)]" />
+        <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-[var(--tema-deco)] animate-spin motion-reduce:animate-none" />
       </div>
+      <p className="text-[13px] font-medium tracking-[0.14em] uppercase text-[var(--tema-texto-suave)]">
+        Cargando
+      </p>
     </div>
   );
 
   if (loadError) return (
-    <main className="min-h-screen flex flex-col items-center justify-center gap-4 bg-[#0A0E17] px-6 text-center text-white" role="alert">
-      <h1 className="text-xl font-semibold">No se pudo cargar el portafolio</h1>
-      <p className="max-w-md text-white/70">Revisa tu conexión e inténtalo nuevamente.</p>
+    <main className="min-h-screen flex flex-col items-center justify-center gap-4 bg-[var(--tema-fondo)] px-6 text-center" role="alert">
+      <h1 className="text-3xl text-[var(--tema-texto)]">No se pudo cargar el portafolio</h1>
+      <p className="max-w-md text-[17px] leading-relaxed text-[var(--tema-texto-suave)]">Revisa tu conexión e inténtalo nuevamente.</p>
       <button
-        className="rounded-md bg-acento px-4 py-2 font-medium hover:bg-[#0067ad]"
+        className="mt-2 h-11 px-6 rounded-[10px] bg-[var(--tema-boton)] text-[var(--tema-boton-texto)] text-[12.5px] font-semibold uppercase tracking-[0.07em] hover:bg-[var(--tema-boton-hover)]"
         onClick={() => window.location.reload()}
       >
         Reintentar
