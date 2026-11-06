@@ -12,6 +12,7 @@
   "dependencies": {
     "@cloudinary/url-gen": "^1.22.0",
     "@emailjs/browser": "^4.4.1",
+    "@tabler/icons-react": "^3.50.0",
     "@tailwindcss/postcss": "^4.1.18",
     "autoprefixer": "^10.4.23",
     "firebase": "^12.7.0",

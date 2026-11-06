@@ -1,25 +1,45 @@
 import { useState, useEffect } from 'react';
 import { auth, googleProvider } from "../lib/firebase";
-import { signOut, signInWithPopup, signInWithRedirect, getRedirectResult } from "firebase/auth";
-import { useApp } from '../context/AppContext';
-import { ADMIN_EMAIL } from '../constants/config';
+import { signOut, signInWithPopup, signInWithRedirect, signInWithCredential, GoogleAuthProvider, getRedirectResult } from "firebase/auth";
+import { useApp } from '../context/useApp';
+import { ADMIN_EMAIL, GOOGLE_OAUTH_CLIENT_ID } from '../constants/config';
+
+let googleIdentityScriptPromise;
+
+const loadGoogleIdentityScript = () => {
+  if (window.google?.accounts?.id) return Promise.resolve(window.google);
+
+  if (!googleIdentityScriptPromise) {
+    googleIdentityScriptPromise = new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = 'https://accounts.google.com/gsi/client';
+      script.async = true;
+      script.onload = () => resolve(window.google);
+      script.onerror = () => reject(new Error('No se pudo cargar Google Identity Services'));
+      document.head.appendChild(script);
+    });
+  }
+
+  return googleIdentityScriptPromise;
+};
+
+const navLinks = [
+  { name: 'Home', nameEN: 'Home', id: 'Home' },
+  { name: 'Habilidades', nameEN: 'Skills', id: 'Habilidades' },
+  { name: 'Proyectos', nameEN: 'Projects', id: 'Proyectos' },
+  { name: 'Experiencia', nameEN: 'Experience', id: 'Experiencia' }
+];
 
 /**
  * NAVBAR REFACTORIZADO
  * Optimizado pero manteniendo toda la funcionalidad original
  */
-export default function Navbar({ data, onUpdate }) {
-  const { isDark, setIsDark, lang, setLang, isAdmin, isAdminDetected, user, loading } = useApp();
+export default function Navbar() {
+  const { isDark, setIsDark, lang, setLang, isAdminDetected, user, loading } = useApp();
+  const [showAdminFallback, setShowAdminFallback] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [activeSection, setActiveSection] = useState('Home');
   const [scrolled, setScrolled] = useState(false);
-
-  const navLinks = [
-    { name: 'Home', nameEN: 'Home', id: 'Home' },
-    { name: 'Habilidades', nameEN: 'Skills', id: 'Habilidades' },
-    { name: 'Proyectos', nameEN: 'Projects', id: 'Proyectos' },
-    { name: 'Experiencia', nameEN: 'Experience', id: 'Experiencia' }
-  ];
 
   // Verificar resultado de redirect al cargar
   useEffect(() => {
@@ -36,6 +56,61 @@ export default function Navbar({ data, onUpdate }) {
     
     checkRedirectResult();
   }, []);
+
+  useEffect(() => {
+    if (!GOOGLE_OAUTH_CLIENT_ID || user) return undefined;
+
+    let active = true;
+    loadGoogleIdentityScript()
+      .then((google) => {
+        if (!active) return;
+
+        google.accounts.id.initialize({
+          client_id: GOOGLE_OAUTH_CLIENT_ID,
+          auto_select: true,
+          cancel_on_tap_outside: false,
+          callback: async ({ credential }) => {
+            if (!credential) return;
+
+            try {
+              const encodedPayload = credential.split('.')[1]
+                .replace(/-/g, '+')
+                .replace(/_/g, '/');
+              const paddedPayload = encodedPayload.padEnd(Math.ceil(encodedPayload.length / 4) * 4, '=');
+              const payload = JSON.parse(atob(paddedPayload));
+
+              if (payload.email?.toLowerCase() !== ADMIN_EMAIL.toLowerCase() || payload.email_verified !== true) {
+                google.accounts.id.cancel();
+                return;
+              }
+
+              const result = await signInWithCredential(
+                auth,
+                GoogleAuthProvider.credential(credential)
+              );
+
+              if (result.user.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
+                localStorage.setItem('portfolio_admin_detected', 'true');
+              }
+            } catch (error) {
+              console.error('Error al verificar la cuenta administradora:', error);
+            }
+          }
+        });
+
+        google.accounts.id.prompt((notification) => {
+          if (active && (notification.isNotDisplayed() || notification.isSkippedMoment())) {
+            setShowAdminFallback(true);
+          }
+        });
+      })
+      .catch((error) => console.warn('Google One Tap no está disponible:', error));
+
+    return () => {
+      active = false;
+      window.google?.accounts?.id?.cancel();
+    };
+  }, [user]);
 
   // Login handler
   const login = async () => {
@@ -120,7 +195,7 @@ export default function Navbar({ data, onUpdate }) {
         <div className="flex items-center gap-3 animate-in slide-in-from-left-4 duration-500">
           <button 
             onClick={logout} 
-            className={`relative px-4 py-1.5 rounded-full font-medium text-xs tracking-wider uppercase overflow-hidden group transition-all duration-300 ${
+            className={`claro-salir relative px-4 py-1.5 rounded-full font-medium text-xs tracking-wider uppercase overflow-hidden group transition-all duration-300 ${
               isDark 
                 ? 'bg-gradient-to-r from-red-500/10 to-rose-500/10 text-red-400 hover:from-red-500/20 hover:to-rose-500/20 shadow-lg shadow-red-500/10 hover:shadow-red-500/20 ring-1 ring-red-500/30 hover:ring-red-500/50' 
                 : 'bg-gradient-to-r from-red-50 to-rose-50 text-red-600 hover:from-red-100 hover:to-rose-100 shadow-lg shadow-red-200/50 hover:shadow-red-200/70 ring-1 ring-red-200/60 hover:ring-red-300'
@@ -143,11 +218,11 @@ export default function Navbar({ data, onUpdate }) {
     }
 
     // Admin detectado pero no logueado - Botón de Login
-    if (isAdminDetected) {
+    if (isAdminDetected || showAdminFallback) {
       return (
         <button 
           onClick={login} 
-          className={`relative px-5 py-2 rounded-full font-bold text-xs tracking-widest uppercase overflow-hidden group transition-all duration-300 ${
+          className={`claro-salir relative px-5 py-2 rounded-full font-bold text-xs tracking-widest uppercase overflow-hidden group transition-all duration-300 ${
             isDark 
               ? 'bg-gradient-to-r from-yellow-500/10 via-amber-500/10 to-yellow-600/10 text-yellow-400 hover:from-yellow-500/20 hover:via-amber-500/20 hover:to-yellow-600/20 shadow-lg shadow-yellow-500/20 hover:shadow-yellow-500/30 ring-1 ring-yellow-500/30 hover:ring-yellow-500/50' 
               : 'bg-gradient-to-r from-yellow-50 via-amber-50 to-yellow-100 text-yellow-700 hover:from-yellow-100 hover:via-amber-100 hover:to-yellow-200 shadow-lg shadow-yellow-200/50 hover:shadow-yellow-300/70 ring-1 ring-yellow-300/60 hover:ring-yellow-400'
@@ -173,14 +248,14 @@ export default function Navbar({ data, onUpdate }) {
 
   return (
     <nav className={`
-      fixed top-0 left-0 right-0 z-[100] backdrop-blur-xl border-b transition-all duration-700
+      claro-nav fixed top-0 left-0 right-0 z-[100] backdrop-blur-xl border-b transition-all duration-700
       ${scrolled ? 'shadow-lg' : ''}
       ${isDark 
         ? 'bg-[#0A0F1A]/90 border-white/5' 
-        : 'bg-[var(--color-light-bg-secondary)]/90 border-slate-200'
+        : 'bg-[var(--color-light-bg)]/85 border-[var(--color-light-border)]'
       }
     `}>
-      <div className="max-w-[1800px] mx-auto px-6 md:px-12 py-4">
+      <div className="claro-contenedor claro-nav-fila max-w-[1800px] mx-auto px-6 md:px-12 py-4">
         <div className="flex items-center justify-between">
           
           {/* Logo / Botón Admin */}
@@ -189,16 +264,16 @@ export default function Navbar({ data, onUpdate }) {
           </div>
 
           {/* LADO DERECHO: Menú, Idiomas y Tema */}
-          <div className="flex items-center gap-8">
+          <div className="claro-nav-derecha flex items-center gap-8">
             
             {/* Desktop Menu */}
-            <ul className="hidden lg:flex gap-10">
+            <ul className="claro-nav-lista hidden lg:flex gap-10">
               {navLinks.map((link) => (
                 <li 
                   key={link.id} 
-                  onClick={() => handleNavClick(link.id)} 
+                  onClick={() => handleNavClick(link.id)} aria-current={activeSection === link.id ? 'page' : undefined} 
                   className={`
-                    relative cursor-pointer transition-all duration-300 group
+                    relative cursor-pointer transition-all duration-300 group claro-nav-link
                     text-[14px] font-['Quicksand'] tracking-[0.2em]
                     ${activeSection === link.id 
                       ? (isDark ? 'text-white font-semibold' : 'text-slate-900 font-bold') 
@@ -208,7 +283,7 @@ export default function Navbar({ data, onUpdate }) {
                 >
                   {lang === 'ES' ? link.name : link.nameEN}
                   <span className={`
-                    absolute -bottom-1 left-1/2 -translate-x-1/2 h-[1.5px] bg-[#0078C8] transition-all duration-300
+                    absolute -bottom-1 left-1/2 -translate-x-1/2 h-[1.5px] bg-acento transition-all duration-300
                     ${activeSection === link.id 
                       ? 'w-full opacity-100' 
                       : 'w-0 opacity-0 group-hover:w-1/2 group-hover:opacity-50'
@@ -236,19 +311,19 @@ export default function Navbar({ data, onUpdate }) {
             </button>
 
             {/* Desktop Controls */}
-            <div className="hidden lg:flex items-center gap-6 border-l pl-6 border-white/10">
+            <div className="claro-controles hidden lg:flex items-center gap-6 border-l pl-6 border-white/10">
               
               {/* Language Selector */}
               <div className={`
-                flex p-1 rounded-full border text-[9px] font-black
+                claro-idioma flex p-1 rounded-full border text-[9px] font-black
                 ${isDark ? 'bg-white/5 border-white/10' : 'bg-slate-100 border-slate-200'}
               `}>
                 <button 
-                  onClick={() => setLang('ES')} 
+                  onClick={() => setLang('ES')} aria-pressed={lang === 'ES'} 
                   className={`
                     px-3 py-1 rounded-full transition-all
                     ${lang === 'ES' 
-                      ? (isDark ? 'bg-white/10 text-white' : 'bg-[var(--color-light-bg-secondary)] text-[#0078C8] shadow-sm') 
+                      ? (isDark ? 'bg-white/10 text-white' : 'bg-[var(--color-light-bg-secondary)] text-acento shadow-sm') 
                       : 'text-slate-500'
                     }
                   `}
@@ -256,11 +331,11 @@ export default function Navbar({ data, onUpdate }) {
                   ES
                 </button>
                 <button 
-                  onClick={() => setLang('EN')} 
+                  onClick={() => setLang('EN')} aria-pressed={lang === 'EN'} 
                   className={`
                     px-3 py-1 rounded-full transition-all
                     ${lang === 'EN' 
-                      ? (isDark ? 'bg-white/10 text-white' : 'bg-[var(--color-light-bg-secondary)] text-[#0078C8] shadow-sm') 
+                      ? (isDark ? 'bg-white/10 text-white' : 'bg-[var(--color-light-bg-secondary)] text-acento shadow-sm') 
                       : 'text-slate-500'
                     }
                   `}
@@ -273,7 +348,7 @@ export default function Navbar({ data, onUpdate }) {
               <button 
                 onClick={() => setIsDark(!isDark)} 
                 className={`
-                  relative w-10 h-10 flex items-center justify-center rounded-xl 
+                  relative claro-tema w-10 h-10 flex items-center justify-center rounded-xl 
                   transition-all duration-300 border
                   ${isDark 
                     ? 'bg-[#111827] border-white/5 text-slate-400 hover:border-white/20' 
@@ -297,15 +372,15 @@ export default function Navbar({ data, onUpdate }) {
 
         {/* Mobile Menu */}
         {isOpen && (
-          <div className={`lg:hidden absolute top-full left-0 w-full ${
+          <div className={`claro-menu-movil lg:hidden absolute top-full left-0 w-full ${
             isDark ? 'bg-[#0A0F1A]/95 backdrop-blur-xl' : 'bg-[var(--color-light-bg-secondary)]/95 backdrop-blur-xl'
           }`}>
             <div className="px-6 py-4 space-y-4">
               {navLinks.map((link) => (
                 <button
                   key={link.id}
-                  onClick={() => handleNavClick(link.id)}
-                  className={`block w-full text-left py-2 text-sm font-bold tracking-wider transition-colors ${
+                  onClick={() => handleNavClick(link.id)} aria-current={activeSection === link.id ? 'page' : undefined}
+                  className={`claro-nav-link block w-full text-left py-2 text-sm font-bold tracking-wider transition-colors ${
                     activeSection === link.id
                       ? (isDark ? 'text-white' : 'text-slate-900')
                       : (isDark ? 'text-white/40' : 'text-slate-400')
@@ -316,24 +391,24 @@ export default function Navbar({ data, onUpdate }) {
               ))}
               
               <div className="pt-4 border-t border-white/10 flex items-center justify-between">
-                <div className={`flex p-1 rounded-full border text-[9px] font-black ${
+                <div className={`claro-idioma flex p-1 rounded-full border text-[9px] font-black ${
                   isDark ? 'bg-white/5 border-white/10' : 'bg-slate-100 border-slate-200'
                 }`}>
                   <button 
-                    onClick={() => setLang('ES')} 
+                    onClick={() => setLang('ES')} aria-pressed={lang === 'ES'} 
                     className={`px-3 py-1 rounded-full transition-all ${
                       lang === 'ES' 
-                        ? (isDark ? 'bg-white/10 text-white' : 'bg-[var(--color-light-bg-secondary)] text-[#0078C8] shadow-sm') 
+                        ? (isDark ? 'bg-white/10 text-white' : 'bg-[var(--color-light-bg-secondary)] text-acento shadow-sm') 
                         : 'text-slate-500'
                     }`}
                   >
                     ES
                   </button>
                   <button 
-                    onClick={() => setLang('EN')} 
+                    onClick={() => setLang('EN')} aria-pressed={lang === 'EN'} 
                     className={`px-3 py-1 rounded-full transition-all ${
                       lang === 'EN' 
-                        ? (isDark ? 'bg-white/10 text-white' : 'bg-[var(--color-light-bg-secondary)] text-[#0078C8] shadow-sm') 
+                        ? (isDark ? 'bg-white/10 text-white' : 'bg-[var(--color-light-bg-secondary)] text-acento shadow-sm') 
                         : 'text-slate-500'
                     }`}
                   >
@@ -343,7 +418,7 @@ export default function Navbar({ data, onUpdate }) {
 
                 <button 
                   onClick={() => setIsDark(!isDark)} 
-                  className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all duration-300 border ${
+                  className={`claro-tema w-10 h-10 flex items-center justify-center rounded-xl transition-all duration-300 border ${
                     isDark 
                       ? 'bg-[#111827] border-white/5 text-slate-400' 
                       : 'bg-[var(--color-light-bg-secondary)] border-slate-200 text-yellow-500'

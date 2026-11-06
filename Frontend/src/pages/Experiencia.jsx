@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useApp } from '../context/AppContext';
+import { useApp } from '../context/useApp';
 import { useModal } from '../hooks/useModal';
 import translate from 'translate';
 import Modal from '../components/ui/Modal';
@@ -7,6 +7,14 @@ import Input from '../components/ui/Input';
 import Textarea from '../components/ui/Textarea';
 import Button from '../components/ui/Button';
 import SectionWrapper from '../components/SectionWrapper';
+
+const EMPTY_EXPERIENCES = [];
+const DEFAULT_HEADER_DATA = {
+  title: 'Experiencia',
+  titleEN: 'Experience',
+  description: '',
+  descriptionEN: ''
+};
 
 export default function Experiencia({ data, onUpdate }) {
   const { isDark, isAdmin, lang } = useApp();
@@ -22,14 +30,12 @@ export default function Experiencia({ data, onUpdate }) {
   const [formData, setFormData] = useState({ 
     title: '', company: '', period: '', description: '' 
   });
-  const [headerData, setHeaderData] = useState({
-    title: 'Experiencia',
-    titleEN: 'Experience',
-    description: '',
-    descriptionEN: ''
-  });
+  const [headerDraft, setHeaderDraft] = useState(null);
 
-  const experiences = data?.list || data || [];
+  const headerData = { ...DEFAULT_HEADER_DATA, ...data?.header, ...headerDraft };
+  const experiences = Array.isArray(data?.list)
+    ? data.list
+    : Array.isArray(data) ? data : EMPTY_EXPERIENCES;
 
   // Traducir experiencias cuando cambie el idioma
   useEffect(() => {
@@ -87,13 +93,6 @@ export default function Experiencia({ data, onUpdate }) {
   // Usar las experiencias traducidas para mostrar
   const displayExperiences = lang === 'EN' ? translatedExperiences : experiences;
 
-  // Cargar headerData desde props
-  useEffect(() => {
-    if (data?.header) {
-      setHeaderData(data.header);
-    }
-  }, [data]);
-
   // Función para detectar si es "presente" o "actual"
   const isCurrentJob = (period) => {
     if (!period) return false;
@@ -129,11 +128,7 @@ export default function Experiencia({ data, onUpdate }) {
   const otherExperiences = sortedExperiences.slice(1);
   const needsCarousel = otherExperiences.length > 1;
 
-  useEffect(() => {
-    if (currentIndex >= otherExperiences.length && otherExperiences.length > 0) {
-      setCurrentIndex(0);
-    }
-  }, [otherExperiences.length, currentIndex]);
+  const displayIndex = otherExperiences.length ? currentIndex % otherExperiences.length : 0;
 
   const handleNavigation = (direction) => {
     if (isTransitioning || otherExperiences.length <= 1) return;
@@ -244,10 +239,16 @@ export default function Experiencia({ data, onUpdate }) {
       };
       
       await onUpdate({ list: experiences, header: updatedHeader });
-    } catch (error) {
+    } catch {
       await onUpdate({ list: experiences, header: headerData });
     }
+    setHeaderDraft(null);
     editHeaderModal.close();
+  };
+
+  const openHeaderEditor = () => {
+    setHeaderDraft(headerData);
+    editHeaderModal.open();
   };
 
   const resetForm = () => {
@@ -256,23 +257,23 @@ export default function Experiencia({ data, onUpdate }) {
   };
 
   return (
-    <SectionWrapper id="Experiencia">
-      <div className="w-full max-w-[1600px] mx-auto px-10 sm:px-6 md:px-12 lg:px-20 relative z-10">
+    <SectionWrapper id="Experiencia" sinLinea>
+      <div className="claro-contenedor w-full max-w-[1600px] mx-auto px-10 sm:px-6 md:px-12 lg:px-20 relative z-10">
         
         {/* HEADER CENTRADO - MISMO TAMAÑO QUE HABILIDADES */}
         <div className={`flex items-center justify-center gap-4 sm:gap-6 relative ${
           (headerData.description || headerData.descriptionEN) ? 'mb-8 sm:mb-8' : 'mb-8 sm:mb-20'
         }`}>
           <div className="text-center">
-            <h1 className={`text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black tracking-tighter leading-none mb-3 transition-all duration-700 ${
+            <h1 className={`claro-seccion-titulo text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black tracking-tighter leading-none mb-3 transition-all duration-700 ${
               isDark ? 'text-white' : 'text-slate-900'
             }`}>
               {lang === 'ES' ? (data?.header?.title || 'Experiencia') : (data?.header?.titleEN || 'Experience')}
             </h1>
-            <div className={`h-[2px] w-32 sm:w-40 bg-gradient-to-r from-transparent via-[#0078C8] to-transparent mx-auto`} />
+            <div className={`h-[2px] w-32 sm:w-40 bg-gradient-to-r from-transparent via-acento to-transparent mx-auto claro-regla`} />
             
             {(headerData.description || headerData.descriptionEN) && (
-              <p className={`mt-6 text-sm sm:text-base md:text-lg max-w-5xl mx-auto leading-relaxed transition-colors duration-300 ${
+              <p className={`claro-seccion-desc mt-6 text-sm sm:text-base md:text-lg max-w-5xl mx-auto leading-relaxed transition-colors duration-300 ${
                 isDark ? 'text-slate-400' : 'text-slate-600'
               }`}>
                 {lang === 'ES' ? headerData.description : (headerData.descriptionEN || headerData.description)}
@@ -284,13 +285,13 @@ export default function Experiencia({ data, onUpdate }) {
             <div className="absolute right-0 flex items-center gap-2">
               <button 
                 onClick={addModal.open}
-                className="px-3 sm:px-4 py-2 rounded-lg text-[8px] sm:text-[9px] font-bold uppercase tracking-wider transition-all bg-[#0078C8] text-white hover:bg-[#005A96] opacity-60 hover:opacity-100"
+                className="px-3 sm:px-4 py-2 rounded-lg text-[8px] sm:text-[9px] font-bold uppercase tracking-wider transition-all claro-btn-oscuro bg-acento text-white hover:bg-acento-hover opacity-60 hover:opacity-100"
               >
                 + Nuevo
               </button>
               <button 
-                onClick={editHeaderModal.open} 
-                className={`p-2 rounded-lg transition-all opacity-60 hover:opacity-100 ${
+                onClick={openHeaderEditor}
+                className={`p-2 rounded-lg transition-all opacity-60 hover:opacity-100 claro-btn-suave ${
                   isDark ? 'bg-white/5 hover:bg-white/10 text-white/60' : 'bg-[var(--color-light-bg-tertiary)] hover:bg-[var(--color-light-bg-secondary)] text-[var(--color-light-text-secondary)]'
                 }`}
               >
@@ -303,7 +304,7 @@ export default function Experiencia({ data, onUpdate }) {
         </div>
 
         {/* CONTENIDO */}
-        <div className="space-y-0">
+        <div className="claro-trabajos space-y-0">
           {sortedExperiences.length === 0 && (
             <div className={`text-center py-20 sm:py-32 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
               <p className="text-base sm:text-lg">No hay experiencias cargadas aún</p>
@@ -317,7 +318,7 @@ export default function Experiencia({ data, onUpdate }) {
           {isTranslating && lang === 'EN' && (
             <div className={`text-center py-4 text-sm ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
               <div className="flex items-center justify-center gap-2">
-                <div className="animate-spin rounded-full h-4 w-4 border-2 border-[#0078C8] border-t-transparent"></div>
+                <div className="animate-spin rounded-full h-4 w-4 border-2 border-acento border-t-transparent"></div>
                 <span>Traduciendo contenido...</span>
               </div>
             </div>
@@ -327,7 +328,6 @@ export default function Experiencia({ data, onUpdate }) {
           {currentExperience && !isTranslating && (
             <ExperienceCard 
               exp={currentExperience}
-              index={0}
               isDark={isDark}
               isAdmin={isAdmin}
               onEdit={() => handleEdit(0)}
@@ -345,12 +345,11 @@ export default function Experiencia({ data, onUpdate }) {
                   style={{ minHeight: '200px' }}
                 >
                   <ExperienceCard 
-                    exp={otherExperiences[currentIndex]}
-                    index={currentIndex + 1}
+                    exp={otherExperiences[displayIndex]}
                     isDark={isDark}
                     isAdmin={isAdmin}
-                    onEdit={() => handleEdit(currentIndex + 1)}
-                    onRemove={() => remove(currentIndex + 1)}
+                    onEdit={() => handleEdit(displayIndex + 1)}
+                    onRemove={() => remove(displayIndex + 1)}
                     showConnector={false}
                   />
                 </div>
@@ -378,15 +377,15 @@ export default function Experiencia({ data, onUpdate }) {
                         key={idx} 
                         onClick={(e) => {
                           e.stopPropagation();
-                          if (!isTransitioning && idx !== currentIndex) {
+                          if (!isTransitioning && idx !== displayIndex) {
                             setIsTransitioning(true);
                             setCurrentIndex(idx);
                             setTimeout(() => setIsTransitioning(false), 500);
                           }
                         }} 
                         className={`h-1.5 rounded-full transition-all duration-300 ${
-                          currentIndex === idx
-                            ? 'bg-[#0078C8] w-8' 
+                          displayIndex === idx
+                            ? 'bg-acento w-8' 
                             : (isDark ? 'bg-white/10 w-2 hover:w-3 hover:bg-white/20' : 'bg-[var(--color-light-border)] w-2 hover:w-3 hover:bg-[var(--color-light-border-secondary)]')
                         }`} 
                       />
@@ -419,13 +418,13 @@ export default function Experiencia({ data, onUpdate }) {
           <Input
             label="Título (Español)"
             value={headerData.title}
-            onChange={(e) => setHeaderData({...headerData, title: e.target.value})}
+            onChange={(e) => setHeaderDraft((current) => ({ ...headerData, ...current, title: e.target.value }))}
             helper="Se traducirá automáticamente al inglés"
           />
           <Textarea
             label="Descripción (Español) - Opcional"
             value={headerData.description || ''}
-            onChange={(e) => setHeaderData({...headerData, description: e.target.value})}
+            onChange={(e) => setHeaderDraft((current) => ({ ...headerData, ...current, description: e.target.value }))}
             rows={3}
             helper="Descripción que aparecerá debajo del título. Se traducirá automáticamente al inglés. Dejar vacío para no mostrar."
           />
@@ -531,47 +530,39 @@ export default function Experiencia({ data, onUpdate }) {
 }
 
 // Componente para cada card de experiencia
-function ExperienceCard({ exp, index, isDark, isAdmin, onEdit, onRemove, showConnector }) {
+function ExperienceCard({ exp, isDark, isAdmin, onEdit, onRemove, showConnector }) {
   return (
-    <div className={`relative group mb-8 ${showConnector ? 'pb-8' : ''}`}>
-      <div className={`rounded-2xl p-6 sm:p-8 transition-all duration-500 border hover:-translate-y-1 ${
+    <div className={`claro-trabajo relative group mb-8 ${showConnector ? 'pb-8' : ''}`}>
+      <div className={`claro-card rounded-2xl p-6 sm:p-8 transition-all duration-500 border hover:-translate-y-1 ${
         isDark 
-          ? 'bg-white/[0.02] border-white/10 hover:border-[#0078C8]/30' 
-          : 'bg-[var(--color-light-bg-secondary)] border-[var(--color-light-border)] hover:border-[#0078C8]/30 shadow-sm hover:shadow-lg'
+          ? 'bg-white/[0.02] border-white/10 hover:border-acento/30' 
+          : 'bg-[var(--color-light-bg-secondary)] border-[var(--color-light-border)] hover:border-acento/30 shadow-suave hover:shadow-suave-hover'
       }`}>
         <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4 sm:gap-6">
           <div className="flex-1 space-y-3 sm:space-y-4">
             <div className="flex items-start gap-3 sm:gap-4">
-              <div className={`flex-shrink-0 w-2.5 h-2.5 sm:w-3 sm:h-3 mt-1.5 sm:mt-2 rounded-full ${
-                isDark ? 'bg-[#0078C8]' : 'bg-[#0078C8]'
-              }`} style={{ 
-                boxShadow: isDark 
-                  ? '0 0 20px rgba(0,120,200,0.5)' 
-                  : '0 0 20px rgba(0,120,200,0.5)' 
-              }} />
+              <div className="claro-punto flex-shrink-0 w-2.5 h-2.5 sm:w-3 sm:h-3 mt-1.5 sm:mt-2 rounded-full bg-acento" />
               
               <div className="flex-1">
-                <h3 className={`text-xl sm:text-2xl md:text-3xl font-black uppercase tracking-tight mb-1.5 sm:mb-2 ${
+                <h3 className={`claro-trabajo-titulo uppercase mb-1.5 sm:mb-2 ${
                   isDark ? 'text-white' : 'text-slate-900'
                 }`}>
                   {exp.title}
                 </h3>
-                <p className={`font-bold text-base sm:text-lg ${
-                  isDark ? 'text-[#0078C8]' : 'text-[#0078C8]'
-                }`}>
+                <p className="claro-empresa">
                   {exp.company}
                 </p>
               </div>
             </div>
             
-            <div className={`leading-relaxed whitespace-pre-line pl-0 sm:pl-7 text-sm sm:text-base ${
+            <div className={`claro-trabajo-desc leading-relaxed whitespace-pre-line pl-0 sm:pl-7 text-sm sm:text-base ${
               isDark ? 'text-slate-400' : 'text-slate-600'
             }`}>
               {exp.description}
             </div>
           </div>
 
-          <div className={`flex-shrink-0 px-4 sm:px-5 py-2 sm:py-2.5 rounded-full text-xs sm:text-sm font-bold border ${
+          <div className={`claro-fecha flex-shrink-0 px-4 sm:px-5 py-2 sm:py-2.5 rounded-full text-xs sm:text-sm font-bold border ${
             isDark 
               ? 'bg-white/5 text-slate-400 border-white/10' 
               : 'bg-[var(--color-light-bg-tertiary)] text-[var(--color-light-text-secondary)] border-[var(--color-light-border)]'
@@ -587,7 +578,7 @@ function ExperienceCard({ exp, index, isDark, isAdmin, onEdit, onRemove, showCon
           }`}>
             <button 
               onClick={onEdit} 
-              className="p-2 rounded-xl bg-blue-500/10 text-blue-500 hover:bg-blue-500 hover:text-white transition-all"
+              className="p-2 rounded-xl claro-btn-suave bg-acento/10 text-acento hover:bg-acento hover:text-white transition-all"
               title="Editar"
             >
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
@@ -596,7 +587,7 @@ function ExperienceCard({ exp, index, isDark, isAdmin, onEdit, onRemove, showCon
             </button>
             <button 
               onClick={onRemove} 
-              className="p-2 rounded-xl bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all"
+              className="p-2 rounded-xl claro-btn-borrar bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all"
               title="Eliminar"
             >
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
@@ -608,7 +599,7 @@ function ExperienceCard({ exp, index, isDark, isAdmin, onEdit, onRemove, showCon
       </div>
 
       {showConnector && (
-        <div className={`absolute left-6 sm:left-8 bottom-0 w-0.5 h-8 ${
+        <div className={`claro-conector absolute left-6 sm:left-8 bottom-0 w-0.5 h-8 ${
           isDark ? 'bg-gradient-to-b from-white/20 to-transparent' : 'bg-gradient-to-b from-slate-300 to-transparent'
         }`} />
       )}

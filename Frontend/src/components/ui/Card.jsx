@@ -1,5 +1,5 @@
 import { getCardClass } from '../../constants/styles';
-import { useApp } from '../../context/AppContext';
+import { useApp } from '../../context/useApp';
 
 /**
  * CARD REUTILIZABLE

@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { getModalClass } from '../../constants/styles';
-import { useApp } from '../../context/AppContext';
+import { useApp } from '../../context/useApp';
 
 /**
  * MODAL REUTILIZABLE
@@ -75,7 +75,7 @@ export default function Modal({
             ${isDark ? 'border-white/5' : 'border-slate-200'}
             ${centered ? 'text-center' : ''}
             flex items-center justify-between
-            bg-gradient-to-r from-[#00A3FF]/10 to-transparent
+            bg-gradient-to-r from-acento-light/10 to-transparent
           `}>
             <div className={centered ? 'flex-1' : ''}>
               {title && (
@@ -90,7 +90,7 @@ export default function Modal({
                 </h3>
               )}
               {subtitle && (
-                <p className="text-[10px] text-[#00A3FF] font-bold uppercase tracking-widest opacity-70 mt-1">
+                <p className="text-[10px] text-acento-light font-bold uppercase tracking-widest opacity-70 mt-1">
                   {subtitle}
                 </p>
               )}

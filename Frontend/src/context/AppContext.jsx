@@ -1,4 +1,5 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
+import { AppContext } from './context';
 import { auth } from '../lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { ADMIN_EMAIL, ADMIN_DETECTED_KEY, TIMEOUTS } from '../constants/config';
@@ -8,16 +9,6 @@ import { COLORS } from '../constants/colors'; // ← NUEVO: Para inyección din�
  * CONTEXTO GLOBAL DE LA APLICACIÓN
  * Maneja el estado global: tema, idioma, autenticación
  */
-
-const AppContext = createContext();
-
-export const useApp = () => {
-  const context = useContext(AppContext);
-  if (!context) {
-    throw new Error('useApp debe usarse dentro de AppProvider');
-  }
-  return context;
-};
 
 export const AppProvider = ({ children }) => {
   // Estados globales
@@ -55,9 +46,18 @@ export const AppProvider = ({ children }) => {
     root.style.setProperty('--color-dark-bg-tertiary', COLORS.darkBgTertiary);
     
     // Inyectar colores primary
-    root.style.setProperty('--color-primary', COLORS.primary);
-    root.style.setProperty('--color-primary-hover', COLORS.primaryHover);
-    root.style.setProperty('--color-primary-light', COLORS.primaryLight);
+    root.style.setProperty('--color-primary', isDark ? COLORS.primary : COLORS.lightPrimary);
+    root.style.setProperty('--color-primary-hover', isDark ? COLORS.primaryHover : COLORS.lightPrimaryHover);
+    root.style.setProperty('--color-primary-light', isDark ? COLORS.primaryLight : COLORS.lightPrimaryLight);
+    root.style.setProperty('--color-sistemas', isDark ? COLORS.primaryLight : COLORS.lightPrimaryLight);
+    // Acento de las clases (bg-acento, border-acento/40...): azul en oscuro, terracota en claro
+    root.style.setProperty('--color-acento', isDark ? COLORS.primary : COLORS.lightPrimary);
+    root.style.setProperty('--color-acento-hover', isDark ? COLORS.primaryHover : COLORS.lightPrimaryHover);
+    root.style.setProperty('--color-acento-light', isDark ? COLORS.primaryLight : COLORS.lightPrimaryLight);
+    root.style.setProperty('--color-light-primary', COLORS.lightPrimary);
+    root.style.setProperty('--color-light-primary-hover', COLORS.lightPrimaryHover);
+    root.style.setProperty('--color-light-primary-light', COLORS.lightPrimaryLight);
+    root.style.setProperty('--color-light-primary-soft', COLORS.lightPrimarySoft);
     
     // Log para debugging
     console.log('🎨 [AppContext] Colores inyectados:', {
@@ -65,7 +65,7 @@ export const AppProvider = ({ children }) => {
       'lightBgSecondary': COLORS.lightBgSecondary,
       'lightBgTertiary': COLORS.lightBgTertiary,
     });
-  }, []); // Solo se ejecuta una vez al montar
+  }, [isDark]);
 
   // 🔐 MANEJO DE AUTENTICACIÓN
   useEffect(() => {

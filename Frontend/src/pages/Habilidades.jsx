@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { useApp } from '../context/AppContext';
+import { useApp } from '../context/useApp';
 import { useModal } from '../hooks/useModal';
 import { useCloudinary } from '../hooks/useCloudinary';
 import translate from 'translate';
@@ -8,7 +8,9 @@ import Input from '../components/ui/Input';
 import Textarea from '../components/ui/Textarea';
 import Button from '../components/ui/Button';
 import SectionWrapper from '../components/SectionWrapper';
-import { getSkillCardClass, getSmallInputClass, getPreviewImageClass, getDragOverClass, getTextClass } from '../constants/styles';
+import { getSmallInputClass } from '../constants/styles';
+
+const EMPTY_SECTIONS = [];
 
 export default function Habilidades({ data, onUpdate }) {
   const { isDark, isAdmin, lang } = useApp();
@@ -34,7 +36,6 @@ export default function Habilidades({ data, onUpdate }) {
   const [isTransitioning, setIsTransitioning] = useState({});
   const [visibleCounts, setVisibleCounts] = useState({});
   const [isDraggingSection, setIsDraggingSection] = useState(false);
-  const [originalPosition, setOriginalPosition] = useState(null);
   
   const containerRefs = useRef({});
   
@@ -59,7 +60,7 @@ export default function Habilidades({ data, onUpdate }) {
     descriptionEN: ''
   });
 
-  const sections = data?.sections || [];
+  const sections = data?.sections || EMPTY_SECTIONS;
 
   const widthToColumns = {
     '100%': 12,
@@ -71,10 +72,12 @@ export default function Habilidades({ data, onUpdate }) {
     const container = containerRefs.current[sectionIndex];
     if (!container) return 6;
 
-    const cardWidth = 100;
-    const gap = 20;
+    // Íconos de 92px con 12px de separación (iguales en los dos modos)
+    const cardWidth = 92;
+    const gap = 12;
     
-    const availableWidth = container.offsetWidth;
+    // Se descuenta el px-2 del contenedor para que los íconos no bajen de fila
+    const availableWidth = container.offsetWidth - 16;
     const cardsPerRow = Math.floor((availableWidth + gap) / (cardWidth + gap));
     
     return Math.max(1, cardsPerRow);
@@ -89,10 +92,16 @@ export default function Habilidades({ data, onUpdate }) {
       setVisibleCounts(newCounts);
     };
 
-    setTimeout(updateCounts, 100);
+    const timeoutId = setTimeout(updateCounts, 100);
+    // Segundo cálculo cuando termina la transición de padding al cambiar de tema
+    const timeoutTema = setTimeout(updateCounts, 400);
     window.addEventListener('resize', updateCounts);
-    return () => window.removeEventListener('resize', updateCounts);
-  }, [sections]);
+    return () => {
+      clearTimeout(timeoutId);
+      clearTimeout(timeoutTema);
+      window.removeEventListener('resize', updateCounts);
+    };
+  }, [sections, isDark]);
 
   useEffect(() => {
     const initialIndices = {};
@@ -100,7 +109,7 @@ export default function Habilidades({ data, onUpdate }) {
       initialIndices[idx] = 0;
     });
     setCurrentIndices(initialIndices);
-  }, [sections.length]);
+  }, [sections]);
 
   // Bloquear scroll del body cuando el modal de certificado está abierto
   useEffect(() => {
@@ -248,7 +257,7 @@ export default function Habilidades({ data, onUpdate }) {
       setEditingId(null);
       addSectionModal.close();
       editSectionModal.close();
-    } catch (error) {
+    } catch {
       const updated = [...sections];
       if (editingId !== null) {
         updated[editingId] = { 
@@ -294,8 +303,6 @@ export default function Habilidades({ data, onUpdate }) {
       return;
     }
     e.dataTransfer.effectAllowed = 'move';
-    const section = sections[index];
-    setOriginalPosition({ gridRow: section.gridRow, gridColumn: section.gridColumn });
     setDraggedSection(index);
     setIsDraggingSection(true);
     setDragOverPosition(null);
@@ -384,7 +391,6 @@ export default function Habilidades({ data, onUpdate }) {
       setDraggedSection(null);
       setDragOverPosition(null);
       setIsDraggingSection(false);
-      setOriginalPosition(null);
       return;
     }
 
@@ -430,14 +436,12 @@ export default function Habilidades({ data, onUpdate }) {
     setDraggedSection(null);
     setDragOverPosition(null);
     setIsDraggingSection(false);
-    setOriginalPosition(null);
   };
 
   const onDragEnd = () => {
     setDraggedSection(null);
     setDragOverPosition(null);
     setIsDraggingSection(false);
-    setOriginalPosition(null);
   };
 
   const onDragStartSkill = (e, sectionIndex, skillIndex) => {
@@ -580,7 +584,7 @@ export default function Habilidades({ data, onUpdate }) {
 
       await onUpdate({ sections: updated, header: data?.header || headerData });
       resetSkillForm();
-    } catch (error) {
+    } catch {
       alert('Error al guardar');
     }
   };
@@ -637,7 +641,7 @@ export default function Habilidades({ data, onUpdate }) {
       };
       
       await onUpdate({ sections, header: updatedHeader });
-    } catch (error) {
+    } catch {
       await onUpdate({ sections, header: headerData });
     }
     editHeaderModal.close();
@@ -699,22 +703,22 @@ export default function Habilidades({ data, onUpdate }) {
         }
       `}</style>
 
-      <div className="w-full max-w-[1800px] mx-auto px-6 md:px-12 lg:px-18 relative z-10">
+      <div className="claro-contenedor w-full max-w-[1800px] mx-auto px-6 md:px-12 lg:px-18 relative z-10">
         
         {/* HEADER */}
         <div className={`flex items-center justify-center gap-6 relative ${
           (headerData.description || headerData.descriptionEN) ? 'mb-8 sm:mb-8' : 'mb-12 md:mb-20'
         }`}>
           <div className="text-center">
-            <h1 className={`text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black tracking-tighter leading-none mb-3 transition-all duration-700 ${
+            <h1 className={`claro-seccion-titulo text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black tracking-tighter leading-none mb-3 transition-all duration-700 ${
               isDark ? 'text-white' : 'text-slate-900'
             }`}>
               {lang === 'ES' ? (data?.header?.title || 'Habilidades') : (data?.header?.titleEN || 'Skills')}
             </h1>
-            <div className={`h-[2px] w-40 bg-gradient-to-r from-transparent via-[#0078C8] to-transparent mx-auto`} />
+            <div className={`h-[2px] w-40 bg-gradient-to-r from-transparent via-acento to-transparent mx-auto claro-regla`} />
             
             {(headerData.description || headerData.descriptionEN) && (
-              <p className={`mt-6 text-sm sm:text-base md:text-lg max-w-2xl mx-auto leading-relaxed transition-colors duration-300 ${
+              <p className={`claro-seccion-desc mt-6 text-sm sm:text-base md:text-lg max-w-2xl mx-auto leading-relaxed transition-colors duration-300 ${
                 isDark ? 'text-slate-400' : 'text-slate-600'
               }`}>
                 {lang === 'ES' ? headerData.description : (headerData.descriptionEN || headerData.description)}
@@ -726,13 +730,13 @@ export default function Habilidades({ data, onUpdate }) {
             <div className="absolute right-0 flex items-center gap-2">
               <button 
                 onClick={() => openSectionModal()}
-                className="px-4 py-2 rounded-lg text-[9px] font-bold uppercase tracking-wider transition-all bg-[#0078C8] text-white hover:bg-[#005A96] opacity-60 hover:opacity-100"
+                className="px-4 py-2 rounded-lg text-[9px] font-bold uppercase tracking-wider transition-all claro-btn-oscuro bg-acento text-white hover:bg-acento-hover opacity-60 hover:opacity-100"
               >
                 + Sección
               </button>
               <button 
                 onClick={editHeaderModal.open} 
-                className={`p-2 rounded-lg transition-all opacity-60 hover:opacity-100 ${
+                className={`p-2 rounded-lg transition-all opacity-60 hover:opacity-100 claro-btn-suave ${
                   isDark ? 'bg-white/5 hover:bg-white/10 text-white/60' : 'bg-[var(--color-light-bg-secondary)] hover:bg-[var(--color-light-bg-tertiary)] text-[var(--color-light-text-secondary)]'
                 }`}
               >
@@ -754,7 +758,7 @@ export default function Habilidades({ data, onUpdate }) {
             style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(12, 1fr)',
-              gap: '24px',
+              gap: '20px',
               minHeight: '400px'
             }}
             onDragOver={onDragOverGrid}
@@ -762,12 +766,12 @@ export default function Habilidades({ data, onUpdate }) {
           >
             {dragOverPosition && isAdmin && draggedSection !== null && (
               <div
-                className="absolute border-4 border-dashed border-[#0078C8] bg-[#0078C8]/20 rounded-xl pointer-events-none z-50 animate-pulse"
+                className="absolute border-4 border-dashed border-acento bg-acento/20 rounded-xl pointer-events-none z-50 animate-pulse"
                 style={{
                   gridRow: `${dragOverPosition.row} / span ${sections[draggedSection]?.rows || 1}`,
                   gridColumn: `${dragOverPosition.column} / span ${widthToColumns[sections[draggedSection]?.width] || 12}`,
                   minHeight: `${(sections[draggedSection]?.rows || 1) * 180}px`,
-                  boxShadow: '0 0 30px rgba(0, 120, 200, 0.5)'
+                  boxShadow: '0 0 30px color-mix(in srgb, var(--color-acento) 50%, transparent)'
                 }}
               />
             )}
@@ -783,17 +787,17 @@ export default function Habilidades({ data, onUpdate }) {
               return (
                 <div 
                   key={sectionIndex}
-                  className={`skill-section-card group/section space-y-3 relative transition-all duration-300 hover:-translate-y-2 hover:shadow-xl ${
+                  className={`skill-section-card claro-card group/section space-y-3 relative transition-all duration-300 hover:-translate-y-2 hover:shadow-xl ${
                     isDark ? 'bg-white/[0.02]' : 'bg-[var(--color-light-bg-secondary)]'
                   } rounded-xl p-2 border ${
                     isDark ? 'border-white/5' : 'border-[var(--color-light-border)]'
-                  } ${isAdmin ? 'hover:border-[#0078C8]/40' : ''} ${
+                  } ${isAdmin ? 'hover:border-acento/40' : ''} ${
                     draggedSection === sectionIndex ? 'opacity-50 scale-95' : ''
                   }`}
                   style={{
                     gridRow: `${gridRow} / span ${rows}`,
                     gridColumn: `${gridColumn} / span ${columns}`,
-                    minHeight: `${rows * 150}px`
+                    minHeight: undefined
                   }}
                 >
                   <div className="flex items-center justify-center mb-2 relative">
@@ -806,14 +810,14 @@ export default function Habilidades({ data, onUpdate }) {
                           className="p-2 cursor-move hover:bg-white/5 rounded-lg transition-colors"
                           title="Arrastra para mover"
                         >
-                          <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <svg className="claro-agarre w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 8h16M4 16h16" />
                           </svg>
                         </div>
                       </div>
                     )}
                     
-                    <h2 className={`text-lg md:text-xl font-bold tracking-tight text-center ${
+                    <h2 className={`claro-grupo-titulo text-lg md:text-xl font-bold tracking-tight text-center ${
                       isDark ? 'text-white' : 'text-slate-900'
                     }`}>
                       {lang === 'ES' ? section.title : (section.titleEN || section.title)}
@@ -823,7 +827,7 @@ export default function Habilidades({ data, onUpdate }) {
                       <div className="absolute right-2 top-0 flex flex-col gap-2 z-20 opacity-0 group-hover/section:opacity-100 transition-all duration-300">
                         <button 
                           onClick={() => openSkillModal(sectionIndex)} 
-                          className="p-2 rounded-xl bg-[#469642]/10 text-[#469642] hover:bg-[#469642] hover:text-white transition-all"
+                          className="p-2 rounded-xl claro-btn-mas bg-[#469642]/10 text-[#469642] hover:bg-[#469642] hover:text-white transition-all"
                           title="Agregar skill"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5">
@@ -832,7 +836,7 @@ export default function Habilidades({ data, onUpdate }) {
                         </button>
                         <button 
                           onClick={() => openSectionModal(sectionIndex)} 
-                          className="p-2 rounded-xl bg-blue-500/10 text-blue-500 hover:bg-blue-500 hover:text-white transition-all"
+                          className="p-2 rounded-xl claro-btn-suave bg-acento/10 text-acento hover:bg-acento hover:text-white transition-all"
                           title="Editar sección"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
@@ -841,7 +845,7 @@ export default function Habilidades({ data, onUpdate }) {
                         </button>
                         <button 
                           onClick={() => handleDeleteSection(sectionIndex)} 
-                          className="p-2 rounded-xl bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all"
+                          className="p-2 rounded-xl claro-btn-borrar bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all"
                           title="Eliminar sección"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
@@ -857,7 +861,7 @@ export default function Habilidades({ data, onUpdate }) {
                       <>
                         <button 
                           onClick={() => handleNavigation(sectionIndex, 'prev')} 
-                          className="absolute -left-3 md:-left-10 top-1/2 -translate-y-1/2 z-30 p-2 rounded-full bg-[#0078C8] text-white shadow-lg hover:scale-110 transition-all"
+                          className="absolute -left-3 md:-left-10 top-1/2 -translate-y-1/2 z-30 p-2 claro-flecha rounded-full bg-acento text-white shadow-lg hover:scale-110 transition-all"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M15 19l-7-7 7-7" />
@@ -865,7 +869,7 @@ export default function Habilidades({ data, onUpdate }) {
                         </button>
                         <button 
                           onClick={() => handleNavigation(sectionIndex, 'next')} 
-                          className="absolute -right-3 md:-right-10 top-1/2 -translate-y-1/2 z-30 p-2 rounded-full bg-[#0078C8] text-white shadow-lg hover:scale-110 transition-all"
+                          className="absolute -right-3 md:-right-10 top-1/2 -translate-y-1/2 z-30 p-2 claro-flecha rounded-full bg-acento text-white shadow-lg hover:scale-110 transition-all"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M9 5l7 7-7 7" />
@@ -890,11 +894,11 @@ export default function Habilidades({ data, onUpdate }) {
                           return (
                             <div key={`${skill.id || skill.name}-${actualSkillIndex}`} className="flex items-center justify-center"> 
                               {isAdmin && dropTarget.sectionIndex === sectionIndex && dropTarget.skillIndex === actualSkillIndex && !isDraggingSection && (
-                                <div className="w-2 h-24 bg-[#0078C8] rounded-full mx-2 shadow-lg shadow-[#0078C8]/50" style={{ animation: 'pulse 1s infinite' }} />
+                                <div className="w-2 h-24 bg-acento rounded-full mx-2 shadow-lg shadow-acento/50" style={{ animation: 'pulse 1s infinite' }} />
                               )}
 
                               <div 
-                                className="relative w-[100px] h-[120px] group/card transition-all duration-150"
+                                className="claro-skill-item relative w-[100px] h-[120px] group/card transition-all duration-150"
                                 draggable={isAdmin && !isDraggingSection}
                                 onDragStart={(e) => onDragStartSkill(e, sectionIndex, actualSkillIndex)}
                                 onDragOver={(e) => onDragOverSkill(e, sectionIndex, actualSkillIndex)}
@@ -905,10 +909,10 @@ export default function Habilidades({ data, onUpdate }) {
                                 }}
                               >
                                 <div 
-                                  className={`relative w-full h-full rounded-lg p-3 flex flex-col items-center justify-center gap-3 border transition-all duration-300 hover:-translate-y-2 hover:shadow-xl ${
+                                  className={`claro-skill relative w-full h-full rounded-lg p-3 flex flex-col items-center justify-center gap-3 border transition-all duration-300 hover:-translate-y-2 hover:shadow-xl ${
                                     isDark 
-                                      ? 'bg-white/[0.03] border-white/10 hover:border-[#0078C8]/40' 
-                                      : 'bg-[var(--color-light-bg-secondary)] border-[var(--color-light-border)] hover:border-[#0078C8]/40 shadow-lg shadow-slate-900/10'
+                                      ? 'bg-white/[0.03] border-white/10 hover:border-acento/40' 
+                                      : 'bg-[var(--color-light-bg-secondary)] border-[var(--color-light-border)] hover:border-acento/40 shadow-suave hover:shadow-suave-hover'
                                   }`}
                                   style={{ cursor: !isAdmin && skill.hasCertificate ? 'pointer' : undefined }}
                                   onClick={() => {
@@ -929,7 +933,7 @@ export default function Habilidades({ data, onUpdate }) {
                                   
                                   <img src={skill.icon} alt={skill.name} className="w-12 h-12 object-contain" />
                                   
-                                  <span className={`text-sm font-bold text-center leading-tight ${
+                                  <span className={`claro-skill-nombre text-sm font-bold text-center leading-tight ${
                                     isDark ? 'text-slate-300' : 'text-slate-700'
                                   }`}>
                                     {skill.name}
@@ -956,7 +960,7 @@ export default function Habilidades({ data, onUpdate }) {
                                       )}
                                       <button 
                                         onClick={(e) => { e.stopPropagation(); openSkillModal(sectionIndex, actualSkillIndex); }} 
-                                        className="p-2 rounded-xl bg-blue-500/10 text-blue-500 hover:bg-blue-500 hover:text-white transition-all"
+                                        className="p-2 rounded-xl claro-btn-suave bg-acento/10 text-acento hover:bg-acento hover:text-white transition-all"
                                         title="Editar"
                                       >
                                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
@@ -965,7 +969,7 @@ export default function Habilidades({ data, onUpdate }) {
                                       </button>
                                       <button 
                                         onClick={(e) => { e.stopPropagation(); handleDeleteSkill(sectionIndex, actualSkillIndex); }} 
-                                        className="p-2 rounded-xl bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all"
+                                        className="p-2 rounded-xl claro-btn-borrar bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all"
                                         title="Eliminar"
                                       >
                                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
@@ -996,7 +1000,7 @@ export default function Habilidades({ data, onUpdate }) {
           
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <label className="text-[10px] font-bold uppercase text-[#0078C8]">Ancho</label>
+              <label className="text-[10px] font-bold uppercase text-acento">Ancho</label>
               <select 
                 value={sectionForm.width} 
                 onChange={e => setSectionForm({...sectionForm, width: e.target.value})}
@@ -1011,7 +1015,7 @@ export default function Habilidades({ data, onUpdate }) {
             </div>
 
             <div className="space-y-2">
-              <label className="text-[10px] font-bold uppercase text-[#0078C8]">Filas</label>
+              <label className="text-[10px] font-bold uppercase text-acento">Filas</label>
               <select 
                 value={sectionForm.rows} 
                 onChange={e => setSectionForm({...sectionForm, rows: parseInt(e.target.value)})}
@@ -1042,10 +1046,10 @@ export default function Habilidades({ data, onUpdate }) {
           <Input label="Nombre Skill" value={skillForm.name} onChange={e => setSkillForm({...skillForm, name: e.target.value})} />
           
           <div className="space-y-2">
-            <label className="text-[10px] font-bold uppercase text-[#0078C8]">Ícono</label>
+            <label className="text-[10px] font-bold uppercase text-acento">Ícono</label>
             <div className="flex gap-2 mb-2">
-              <button onClick={() => setSkillForm({...skillForm, iconType: 'url'})} className={`flex-1 py-2 text-[10px] rounded ${skillForm.iconType === 'url' ? 'bg-[#0078C8] text-white' : 'bg-slate-100'}`}>URL</button>
-              <button onClick={() => setSkillForm({...skillForm, iconType: 'upload'})} className={`flex-1 py-2 text-[10px] rounded ${skillForm.iconType === 'upload' ? 'bg-[#0078C8] text-white' : 'bg-slate-100'}`}>SUBIR</button>
+              <button onClick={() => setSkillForm({...skillForm, iconType: 'url'})} className={`flex-1 py-2 text-[10px] rounded ${skillForm.iconType === 'url' ? 'bg-acento text-white' : 'bg-slate-100'}`}>URL</button>
+              <button onClick={() => setSkillForm({...skillForm, iconType: 'upload'})} className={`flex-1 py-2 text-[10px] rounded ${skillForm.iconType === 'upload' ? 'bg-acento text-white' : 'bg-slate-100'}`}>SUBIR</button>
             </div>
             {skillForm.iconType === 'url' ? (
               <Input placeholder="URL del ícono" value={skillForm.icon} onChange={e => setSkillForm({...skillForm, icon: e.target.value})} />
@@ -1171,7 +1175,7 @@ export default function Habilidades({ data, onUpdate }) {
                     className="hidden" id="cert-up-multi" 
                   />
                   <label htmlFor="cert-up-multi" className="cursor-pointer">
-                    <span className="text-xs text-[#0078C8] font-semibold">+ Agregar certificado(s)</span>
+                    <span className="text-xs text-acento font-semibold">+ Agregar certificado(s)</span>
                   </label>
                 </div>
               </div>
@@ -1281,7 +1285,7 @@ export default function Habilidades({ data, onUpdate }) {
                   <>
                     <button
                       onClick={() => { setCertViewIndex(prev => (prev - 1 + certs.length) % certs.length); setCertZoom(1); }}
-                      className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 bg-black/30 hover:bg-[#0078C8] text-white w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center transition-all z-50 backdrop-blur-md"
+                      className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 bg-black/30 hover:bg-acento text-white w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center transition-all z-50 backdrop-blur-md"
                     >
                       <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M15 19l-7-7 7-7" />
@@ -1289,7 +1293,7 @@ export default function Habilidades({ data, onUpdate }) {
                     </button>
                     <button
                       onClick={() => { setCertViewIndex(prev => (prev + 1) % certs.length); setCertZoom(1); }}
-                      className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 bg-black/30 hover:bg-[#0078C8] text-white w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center transition-all z-50 backdrop-blur-md"
+                      className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 bg-black/30 hover:bg-acento text-white w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center transition-all z-50 backdrop-blur-md"
                     >
                       <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M9 5l7 7-7 7" />

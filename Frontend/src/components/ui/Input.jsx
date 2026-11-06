@@ -1,5 +1,5 @@
 import { getInputClass, getLabelClass } from '../../constants/styles';
-import { useApp } from '../../context/AppContext';
+import { useApp } from '../../context/useApp';
 
 /**
  * INPUT REUTILIZABLE

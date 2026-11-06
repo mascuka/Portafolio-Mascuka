@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useApp } from '../context/AppContext';
+import { useApp } from '../context/useApp';
 import { useCloudinary } from '../hooks/useCloudinary';
 
 /**
@@ -41,8 +41,8 @@ export default function ImageUploader({
         group relative flex items-center gap-4 p-3 rounded-2xl border-2 border-dashed 
         transition-all cursor-pointer overflow-hidden
         ${isDark 
-          ? 'border-white/10 bg-white/5 hover:bg-white/[0.08] hover:border-[#00A3FF]/50' 
-          : 'border-slate-200 bg-[var(--color-light-bg-secondary)] hover:bg-[var(--color-light-bg)] hover:border-[#00A3FF]/50'
+          ? 'border-white/10 bg-white/5 hover:bg-white/[0.08] hover:border-acento-light/50' 
+          : 'border-slate-200 bg-[var(--color-light-bg-secondary)] hover:bg-[var(--color-light-bg)] hover:border-acento-light/50'
         }
       `}>
         <input 
@@ -55,7 +55,7 @@ export default function ImageUploader({
         
         {/* Preview circular */}
         <div className="relative w-14 h-14 flex-shrink-0">
-          <div className="absolute inset-0 rounded-full border-2 border-[#00A3FF] opacity-20 group-hover:opacity-100 group-hover:scale-110 transition-all duration-500" />
+          <div className="absolute inset-0 rounded-full border-2 border-acento-light opacity-20 group-hover:opacity-100 group-hover:scale-110 transition-all duration-500" />
           <img 
             src={preview || "/placeholder-user.png"} 
             className="w-full h-full object-cover rounded-full p-1"
@@ -78,7 +78,7 @@ export default function ImageUploader({
           `}>
             {uploading ? `Subiendo... ${progress}%` : label}
           </h4>
-          <p className="text-[10px] text-[#00A3FF] font-bold">
+          <p className="text-[10px] text-acento-light font-bold">
             {uploading ? 'Procesando imagen' : `Pulse para ${currentImage ? 'actualizar' : 'subir'}`}
           </p>
         </div>
@@ -87,7 +87,7 @@ export default function ImageUploader({
         <div className={`
           p-2 rounded-lg transition-colors
           ${isDark ? 'bg-white/5 text-white/40' : 'bg-[var(--color-light-bg)] text-slate-500'} 
-          group-hover:text-[#00A3FF]
+          group-hover:text-acento-light
         `}>
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />

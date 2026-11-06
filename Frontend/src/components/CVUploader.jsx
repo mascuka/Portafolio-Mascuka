@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useApp } from '../context/AppContext';
+import { useApp } from '../context/useApp';
 import { CLOUDINARY_CONFIG } from '../constants/config';
 
 /**
@@ -60,8 +60,8 @@ export default function CVUploader({ currentCV, onCVChange }) {
         group flex items-center gap-4 p-3 rounded-2xl border-2 border-dashed 
         transition-all cursor-pointer
         ${isDark 
-          ? 'border-white/10 bg-white/5 hover:bg-white/[0.08] hover:border-[#00A3FF]/50' 
-          : 'border-slate-200 bg-[var(--color-light-bg-secondary)] hover:bg-[var(--color-light-bg)] hover:border-[#00A3FF]/50'
+          ? 'border-white/10 bg-white/5 hover:bg-white/[0.08] hover:border-acento-light/50' 
+          : 'border-slate-200 bg-[var(--color-light-bg-secondary)] hover:bg-[var(--color-light-bg)] hover:border-acento-light/50'
         }
       `}>
         <input 
@@ -75,8 +75,8 @@ export default function CVUploader({ currentCV, onCVChange }) {
         {/* Ícono PDF */}
         <div className={`
           w-14 h-14 flex items-center justify-center rounded-xl transition-colors
-          ${isDark ? 'bg-white/5 text-[#00A3FF]' : 'bg-[var(--color-light-bg)] text-[#00A3FF]'} 
-          group-hover:bg-[#00A3FF] group-hover:text-white
+          ${isDark ? 'bg-white/5 text-acento-light' : 'bg-[var(--color-light-bg)] text-acento-light'} 
+          group-hover:bg-acento-light group-hover:text-white
         `}>
           {uploading ? (
             <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
@@ -95,7 +95,7 @@ export default function CVUploader({ currentCV, onCVChange }) {
           `}>
             Documento CV
           </h4>
-          <p className="text-[10px] text-[#00A3FF] font-bold">
+          <p className="text-[10px] text-acento-light font-bold">
             {uploading 
               ? 'Actualizando archivo...' 
               : currentCV 

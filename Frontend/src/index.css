@@ -1,34 +1,51 @@
 @import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Source+Serif+4:wght@500;600&display=swap');
 @import "tailwindcss";
 
 @theme {
   --color-sistemas: #00A3FF; 
-  --color-fondo: #05070A;
+  --color-fondo: #262624;
   
   /* === MODO OSCURO === */
-  --color-dark-bg: #080B12;
-  --color-dark-bg-secondary: #0A0F1A;
-  --color-dark-bg-tertiary: #0A0E14;
+  --color-dark-bg: #262624;
+  --color-dark-bg-secondary: #30302E;
+  --color-dark-bg-tertiary: #2B2A28;
   
-  /* === MODO CLARO - WARM/BEIGE 🌾 === */
-  /* Tonos cálidos tipo Notion - SIN blanco puro */
-  --color-light-bg: #F0EDE8;           /* Fondo principal - beige/warm claro */
-  --color-light-bg-secondary: #F8F6F3; /* Cards - crema suave (NO blanco) */
-  --color-light-bg-tertiary: #FDFCFB;  /* Inputs, botones, hover - off-white cálido */
+  /* === MODO CLARO "Marfil y arcilla" (AppContext los inyecta desde colors.js) === */
+  --color-light-bg: #FAF9F5;
+  --color-light-bg-secondary: #FFFFFF;
+  --color-light-bg-tertiary: #F0EEE6;
   
   /* Textos modo claro */
-  --color-light-text-primary: #1A202C;   /* Texto principal - gris oscuro azulado */
-  --color-light-text-secondary: #4A5568; /* Texto secundario - gris medio */
-  --color-light-text-tertiary: #718096;  /* Texto terciario / placeholders */
+  --color-light-text-primary: #141413;
+  --color-light-text-secondary: #5E5D59;
+  --color-light-text-tertiary: #5E5D59;
   
-  /* Bordes modo claro */
-  --color-light-border: #E0DBD4;         /* Bordes principales */
-  --color-light-border-secondary: #D0C9C0; /* Bordes hover/activos */
+  /* Bordes y acento modo claro */
+  --color-light-border: #E8E6DC;
+  --color-light-border-secondary: #E2DFD3;
+  --color-light-primary: #B04A28;
+  --color-light-primary-hover: #8F3B1F;
+  --color-light-primary-light: #D97757;
+  --color-light-primary-soft: #F5E6DF;
+
+  /* Serif de títulos en modo claro */
+  --font-serif-claro: "Source Serif 4", Georgia, serif;
+  --font-sans-claro: Inter, system-ui, sans-serif;
   
   /* === AZUL PRINCIPAL === */
   --color-primary: #0078C8;
   --color-primary-hover: #005A96;
   --color-primary-light: #00A3FF;
+
+  /* === ACENTO (AppContext lo pasa a terracota en modo claro) === */
+  --color-acento: #92C0E8;
+  --color-acento-hover: #B5D5F0;
+  --color-acento-light: #92C0E8;
+
+  /* === SOMBRAS SUAVES (modo claro: separan sin marcar bordes) === */
+  --shadow-suave: 0 1px 2px rgba(31, 30, 29, 0.04), 0 4px 16px -6px rgba(31, 30, 29, 0.08);
+  --shadow-suave-hover: 0 2px 4px rgba(31, 30, 29, 0.04), 0 18px 36px -14px rgba(31, 30, 29, 0.16);
 }
 
 /* ============================================
@@ -44,6 +61,461 @@ body {
 
 body.light {
   background-color: var(--color-light-bg);
+}
+
+/* ============================================
+   TEMAS "MARFIL Y ARCILLA" (claro) Y "GRAFITO Y AZUL NIEBLA" (oscuro)
+   Las clases claro-* que llevan los componentes son ganchos: medidas y
+   tipografías se comparten entre los dos modos para que la página no
+   salte al cambiar de tema; los colores salen de las variables --tema-*.
+   ============================================ */
+
+body.light {
+  --tema-fondo: var(--color-light-bg);
+  --tema-superficie: var(--color-light-bg-secondary);
+  --tema-superficie-banda: var(--color-light-bg-secondary);
+  --tema-pildora: var(--color-light-bg-tertiary);
+  --tema-pildora-activa: var(--color-light-bg-secondary);
+  --tema-linea: var(--color-light-border);
+  --tema-linea-banda: #E2DFD3;     /* bordes sobre la franja */
+  --tema-texto: var(--color-light-text-primary);
+  --tema-texto-suave: var(--color-light-text-secondary);
+  --tema-acento: var(--color-light-primary);   /* óxido: texto acentuado */
+  --tema-deco: #D97757;            /* arcilla: solo decoración, nunca texto */
+  --tema-boton: #141413;
+  --tema-boton-hover: #33322F;
+  --tema-boton-texto: #FAF9F5;
+  --tema-suave-hover: #E2DFD3;
+  --tema-borrar: var(--color-light-primary);
+  --tema-punteado: #E2DFD3;
+  --tema-punto-carrusel: #A8A49A;
+
+  /* Grises de Tailwind llevados a la paleta cálida, con los tonos de
+     texto (400 en adelante) en ≥ 4.5:1 sobre marfil, blanco y franja */
+  --color-slate-50: #F5F4EE;
+  --color-slate-100: #F0EEE6;
+  --color-slate-200: #E8E6DC;
+  --color-slate-300: #D3D0C4;
+  --color-slate-400: #6B6A64;
+  --color-slate-500: #5E5D59;
+  --color-slate-600: #5E5D59;
+  --color-slate-700: #3D3D3A;
+  --color-slate-800: #2A2A28;
+  --color-slate-900: #141413;
+  --color-slate-950: #141413;
+  --color-gray-50: #F5F4EE;
+  --color-gray-100: #F0EEE6;
+  --color-gray-200: #E8E6DC;
+  --color-gray-300: #D3D0C4;
+  --color-gray-400: #6B6A64;
+  --color-gray-500: #5E5D59;
+  --color-gray-600: #5E5D59;
+  --color-gray-700: #3D3D3A;
+  --color-gray-800: #2A2A28;
+  --color-gray-900: #141413;
+  --color-gray-950: #141413;
+}
+
+body:not(.light) {
+  --tema-fondo: #262624;
+  --tema-superficie: #30302E;
+  --tema-superficie-banda: #2B2A28;
+  --tema-pildora: #3A3935;
+  --tema-pildora-activa: #55544E;
+  --tema-linea: #3E3D39;
+  --tema-linea-banda: #353430;
+  --tema-texto: #FAF9F5;
+  --tema-texto-suave: #C2C0B6;
+  --tema-acento: #92C0E8;          /* azul niebla: el único acento */
+  --tema-deco: #92C0E8;
+  --tema-boton: #FAF9F5;
+  --tema-boton-hover: #E8E6DC;
+  --tema-boton-texto: #1F1E1D;
+  --tema-suave-hover: #45443F;
+  --tema-borrar: #E58A6B;
+  --tema-punteado: #3E3D39;
+  --tema-punto-carrusel: #5F5E59;
+
+  background-color: var(--tema-fondo);
+}
+
+body {
+  font-family: var(--font-sans-claro);
+}
+
+body ::selection {
+  background-color: color-mix(in srgb, var(--tema-deco) 28%, transparent);
+  color: var(--tema-texto);
+}
+
+/* Títulos: Source Serif 4 peso 500, sin letras comprimidas (los dos modos) */
+body h1,
+body h2:not(.claro-rol),
+body h3,
+body h4 {
+  font-family: var(--font-serif-claro);
+  font-weight: 500;
+  letter-spacing: -0.015em;
+}
+
+body h3,
+body h4 {
+  letter-spacing: 0.01em;
+}
+
+/* Navegación */
+body .claro-nav {
+  background-color: var(--tema-fondo);
+  border-color: var(--tema-linea);
+  box-shadow: none;
+}
+
+body .claro-nav-link {
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: 0;
+  color: var(--tema-texto-suave);
+}
+
+body .claro-nav-link:hover,
+body .claro-nav-link[aria-current="page"] {
+  color: var(--tema-texto);
+}
+
+body .claro-nav-link > span {
+  height: 2px;
+  bottom: -6px;
+}
+
+body .claro-salir {
+  background: var(--tema-pildora);
+  color: var(--tema-texto-suave);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+}
+
+body .claro-salir:hover {
+  color: var(--tema-texto);
+}
+
+body .claro-salir > .absolute {
+  display: none;
+}
+
+body .claro-idioma {
+  padding: 3px;
+  border-color: transparent;
+  background: var(--tema-pildora);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+body .claro-idioma button {
+  color: var(--tema-texto-suave);
+}
+
+body .claro-idioma button[aria-pressed="true"] {
+  background: var(--tema-pildora-activa);
+  color: var(--tema-texto);
+}
+
+body .claro-tema {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border-color: var(--tema-linea);
+  background: var(--tema-superficie);
+  color: var(--tema-texto);
+}
+
+/* Presentación: el nombre pasa a dos líneas cuando no entra, como la referencia */
+body .claro-hero-titulo {
+  white-space: normal;
+  font-size: clamp(46px, 6.2vw, 92px);
+  line-height: 1.04;
+  color: var(--tema-texto);
+}
+
+body .claro-rol {
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  line-height: 1.5;
+  color: var(--tema-acento);
+}
+
+body .claro-oculto {
+  display: none;
+}
+
+body .claro-hero-texto {
+  font-size: 18px;
+  line-height: 1.65;
+  color: var(--tema-texto-suave);
+}
+
+body .claro-redes {
+  gap: 12px;
+  padding-left: 0;
+}
+
+/* Íconos de contacto (Tabler outline, trazo con currentColor): suben 2px y
+   pasan al acento al pasar el mouse, sin sombras ni cambio de escala */
+body .claro-social {
+  width: 46px;
+  height: 46px;
+  border-width: 1px;
+  border-color: var(--tema-linea);
+  background: var(--tema-superficie);
+  color: var(--tema-texto);
+  transition: transform 180ms ease-out, color 180ms ease-out, border-color 180ms ease-out;
+}
+
+@media (hover: hover) {
+  body .claro-social:hover {
+    transform: translateY(-2px);
+    border-color: var(--tema-acento);
+    color: var(--tema-acento);
+  }
+}
+
+body .claro-social:active {
+  transform: translateY(0);
+}
+
+body .claro-social:focus-visible {
+  outline: 2px solid var(--tema-acento);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body .claro-social {
+    transition: color 180ms ease-out, border-color 180ms ease-out;
+  }
+
+  body .claro-social:hover,
+  body .claro-social:active {
+    transform: none;
+  }
+}
+
+body .claro-foto {
+  border-width: 0;
+  box-shadow: 0 0 0 8px var(--tema-fondo), 0 0 0 9px var(--tema-deco);
+}
+
+/* Encabezados de sección */
+body .claro-seccion-titulo {
+  margin-bottom: 14px;
+  font-size: clamp(36px, 4vw, 54px);
+  line-height: 1.1;
+  color: var(--tema-texto);
+}
+
+body .claro-regla {
+  width: 44px;
+  background: var(--tema-deco);
+}
+
+body .claro-seccion-desc {
+  max-width: 760px;
+  margin-top: 14px;
+  margin-bottom: 16px;
+  font-size: 17px;
+  line-height: 1.6;
+  color: var(--tema-texto-suave);
+}
+
+/* Tarjetas: líneas de 1px, sin sombras ni elevación */
+body .claro-card,
+body .claro-proyecto {
+  border: 1px solid var(--tema-linea);
+  border-radius: 16px;
+  background: var(--tema-superficie);
+  box-shadow: none;
+  translate: none;
+}
+
+body .claro-card:hover,
+body .claro-proyecto:hover {
+  border-color: var(--tema-deco);
+}
+
+/* Habilidades */
+body .claro-card.skill-section-card {
+  padding: 20px 16px;
+}
+
+body .claro-grupo-titulo {
+  font-size: 21px;
+  color: var(--tema-texto);
+}
+
+body .claro-skill {
+  gap: 8px;
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+  translate: none;
+}
+
+body .claro-skill-nombre {
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--tema-texto-suave);
+}
+
+/* Proyectos */
+body .claro-proyecto {
+  border-color: var(--tema-linea-banda);
+  background: var(--tema-superficie-banda);
+}
+
+body .claro-proyecto-imagen {
+  border-bottom: 1px solid var(--tema-linea-banda);
+}
+
+body .claro-proyecto-titulo {
+  font-size: 21px;
+  color: var(--tema-texto);
+}
+
+body .claro-proyecto-desc {
+  font-size: 14px;
+  color: var(--tema-texto-suave);
+}
+
+body .claro-btn-proyecto {
+  height: 44px;
+  border-radius: 10px;
+  background: var(--tema-boton);
+  color: var(--tema-boton-texto);
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+}
+
+body .claro-btn-proyecto:hover {
+  background: var(--tema-boton-hover);
+}
+
+body .claro-flecha {
+  background: var(--tema-boton);
+  color: var(--tema-boton-texto);
+}
+
+/* Experiencia */
+body .claro-punto {
+  width: 9px;
+  height: 9px;
+  margin-top: 10px;
+  background: var(--tema-deco);
+}
+
+body .claro-trabajo-titulo {
+  font-size: 23px;
+  line-height: 1.25;
+  color: var(--tema-texto);
+}
+
+body .claro-empresa {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--tema-texto-suave);
+}
+
+body .claro-fecha {
+  border-color: transparent;
+  background: var(--tema-pildora);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--tema-texto);
+}
+
+body .claro-trabajo-desc {
+  font-size: 15.5px;
+  line-height: 1.7;
+  color: var(--tema-texto-suave);
+}
+
+/* Pie */
+body .claro-footer {
+  border-color: var(--tema-linea);
+  background: var(--tema-fondo);
+  color: var(--tema-texto-suave);
+}
+
+body .claro-footer-frase,
+body .claro-footer-volver {
+  font-family: inherit;
+  font-weight: 500;
+  color: var(--tema-texto-suave);
+  opacity: 1;
+}
+
+body .claro-footer-code {
+  color: var(--tema-texto);
+  opacity: 1;
+}
+
+body .claro-footer-arriba {
+  border-radius: 50%;
+  background: var(--tema-boton);
+  color: var(--tema-boton-texto);
+}
+
+body .group:hover .claro-footer-arriba {
+  background: var(--tema-boton-hover);
+}
+
+/* Controles de admin */
+body .claro-btn-oscuro {
+  background: var(--tema-boton);
+  color: var(--tema-boton-texto);
+  opacity: 1;
+}
+
+body .claro-btn-oscuro:hover {
+  background: var(--tema-boton-hover);
+}
+
+body .claro-btn-suave,
+body .claro-btn-borrar {
+  background: var(--tema-pildora);
+  opacity: 1;
+}
+
+body .claro-btn-suave {
+  color: var(--tema-texto);
+}
+
+body .claro-btn-borrar {
+  color: var(--tema-borrar);
+}
+
+body .claro-btn-suave:hover,
+body .claro-btn-borrar:hover {
+  background: var(--tema-suave-hover);
+}
+
+body .claro-btn-punteado {
+  border-color: var(--tema-punteado);
+  color: var(--tema-texto-suave);
+  opacity: 1;
+}
+
+body .claro-btn-punteado:hover {
+  border-color: var(--tema-deco);
+  color: var(--tema-texto);
+}
+
+body .claro-agarre {
+  color: var(--tema-texto-suave);
 }
 
 /* Efecto de línea/ola al navegar */
@@ -83,9 +555,9 @@ section::before {
   height: 1px;
   background: linear-gradient(90deg, 
     transparent 0%, 
-    rgba(0, 163, 255, 0.2) 20%, 
-    rgba(0, 163, 255, 0.5) 50%, 
-    rgba(0, 163, 255, 0.2) 80%, 
+    color-mix(in srgb, var(--color-sistemas) 20%, transparent) 20%, 
+    color-mix(in srgb, var(--color-sistemas) 50%, transparent) 50%, 
+    color-mix(in srgb, var(--color-sistemas) 20%, transparent) 80%, 
     transparent 100%
   );
   opacity: 0;
@@ -241,25 +713,21 @@ html {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(0, 163, 255, 0.2);
+  background: color-mix(in srgb, var(--color-acento) 30%, transparent);
   border-radius: 20px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 163, 255, 0.5);
+  background: color-mix(in srgb, var(--color-acento) 55%, transparent);
 }
 
 /* Scrollbar modo claro WARM */
 body.light ::-webkit-scrollbar-thumb {
-  background: rgba(0, 120, 200, 0.3);
+  background: color-mix(in srgb, var(--color-acento) 30%, transparent);
 }
 
 body.light ::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 120, 200, 0.5);
-}
-
-body.light ::-webkit-scrollbar-track {
-  background: rgba(224, 219, 212, 0.4);
+  background: color-mix(in srgb, var(--color-acento) 55%, transparent);
 }
 
 /* ============================================
@@ -304,11 +772,11 @@ textarea:focus-visible {
 
 /* Sombras para modo claro warm */
 body.light .card-shadow {
-  box-shadow: 0 2px 8px rgba(26, 32, 44, 0.12), 0 1px 4px rgba(26, 32, 44, 0.08);
+  box-shadow: var(--shadow-suave);
 }
 
 body.light .card-shadow:hover {
-  box-shadow: 0 8px 24px rgba(26, 32, 44, 0.16), 0 4px 8px rgba(26, 32, 44, 0.12);
+  box-shadow: var(--shadow-suave-hover);
 }
 
 /* Bordes para modo claro warm */
@@ -323,24 +791,235 @@ body.light .border-light:hover {
 /* Efecto de glow suave en elementos interactivos */
 body.light button:hover,
 body.light a:hover {
-  box-shadow: 0 0 0 3px rgba(0, 120, 200, 0.08);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-acento) 8%, transparent);
 }
 
-/* Texto con mejor contraste en modo claro */
-body.light {
-  color: var(--color-light-text-primary);
+/* Colores de texto por defecto en modo claro. En @layer base para que
+   las clases de cada componente (text-acento, text-white...) ganen */
+@layer base {
+  body.light {
+    color: var(--color-light-text-primary);
+  }
+
+  body.light h1, 
+  body.light h2, 
+  body.light h3, 
+  body.light h4, 
+  body.light h5, 
+  body.light h6 {
+    color: var(--color-light-text-primary);
+  }
+
+  body.light p {
+    color: var(--color-light-text-secondary);
+  }
 }
 
-body.light h1, 
-body.light h2, 
-body.light h3, 
-body.light h4, 
-body.light h5, 
-body.light h6 {
-  color: var(--color-light-text-primary);
+/* Puntos del carrusel de Proyectos: visibles sobre la franja */
+body .claro-punto-carrusel:not(.bg-acento) {
+  background: var(--tema-punto-carrusel);
 }
 
-body.light p,
-body.light span {
-  color: var(--color-light-text-secondary);
+body .claro-punto-carrusel:not(.bg-acento):hover {
+  background: var(--tema-texto-suave);
+}
+
+/* ============================================
+   TAMAÑOS Y ESPACIADO (compartidos por los dos modos)
+   Contenedor de 1400px con margen clamp(20px, 5vw, 72px), secciones
+   compactas en lugar de pantalla completa
+   ============================================ */
+
+body .claro-contenedor {
+  max-width: 1400px;
+  padding-inline: clamp(20px, 5vw, 72px);
+}
+
+/* Las columnas de proyectos ya traen 8px por lado: se descuentan para
+   que la grilla quede alineada con el resto */
+body .claro-contenedor-proyectos {
+  padding-inline: calc(clamp(20px, 5vw, 72px) - 8px);
+}
+
+body .claro-seccion {
+  min-height: 0;
+  padding-block: clamp(56px, 7vw, 96px);
+}
+
+/* Encabezado */
+body .claro-nav-fila {
+  padding-block: 18px;
+}
+
+body .claro-nav-derecha {
+  gap: 40px;
+}
+
+body .claro-nav-lista {
+  gap: 32px;
+}
+
+body .claro-controles {
+  gap: 10px;
+  padding-left: 0;
+  border-left: 0;
+}
+
+body .claro-salir {
+  display: inline-flex;
+  align-items: center;
+  height: 34px;
+  padding: 0 14px;
+}
+
+body .claro-idioma button {
+  height: 30px;
+  padding: 0 12px;
+}
+
+/* Presentación: ocupa la pantalla entera para que al entrar solo se vea
+   el inicio; el padding superior suma el encabezado fijo (73px) */
+body .claro-hero {
+  min-height: 100vh;
+  min-height: 100svh;
+  padding-top: calc(73px + 56px);
+  padding-bottom: 56px;
+}
+
+body .claro-hero-fila {
+  justify-content: space-between;
+  gap: 56px;
+}
+
+body .claro-hero-col {
+  align-items: flex-start;
+  gap: 22px;
+  text-align: left;
+}
+
+body .claro-hero-col > * {
+  margin-block: 0;
+}
+
+body .claro-redes {
+  justify-content: flex-start;
+  padding-top: 6px;
+}
+
+body .claro-foto-col {
+  flex: 0 0 auto;
+}
+
+body .claro-foto {
+  width: clamp(240px, 27vw, 384px);
+  height: clamp(240px, 27vw, 384px);
+}
+
+/* Habilidades */
+body .claro-card.skill-section-card {
+  padding: 26px 20px;
+}
+
+body .claro-skill-item {
+  width: 92px;
+  height: auto;
+}
+
+body .claro-skill {
+  padding: 4px 0;
+}
+
+/* Proyectos */
+body .claro-proyecto-cuerpo {
+  gap: 10px;
+  padding: 20px 18px 18px;
+}
+
+body .claro-proyecto-cuerpo > * {
+  margin-bottom: 0;
+}
+
+body .claro-btn-proyecto {
+  margin-top: 8px;
+}
+
+/* Experiencia: lista centrada de 1040px, tarjetas a 20px sin conector */
+body .claro-trabajos {
+  max-width: 1040px;
+  margin-inline: auto;
+}
+
+body .claro-trabajo {
+  margin-bottom: 20px;
+  padding-bottom: 0;
+}
+
+body .claro-conector {
+  display: none;
+}
+
+body .claro-trabajo > .claro-card {
+  padding: 30px 32px;
+}
+
+body .claro-fecha {
+  padding: 7px 14px;
+}
+
+body .claro-trabajo-desc {
+  max-width: 800px;
+}
+
+@media (min-width: 640px) {
+  body .claro-trabajo-desc {
+    padding-left: 25px;
+  }
+}
+
+/* Pie */
+body .claro-footer {
+  padding: 20px 0;
+}
+
+/* ============================================
+   SOLO MODO OSCURO "GRAFITO Y AZUL NIEBLA"
+   ============================================ */
+
+/* Íconos de habilidades sobre una plaquita de 60x60 y radio 14 (sin ella
+   el ícono negro de GitHub casi desaparece). La plaquita se dibuja con
+   box-shadow para no cambiar el alto respecto del modo claro. */
+body:not(.light) .claro-skill img {
+  padding: 6px;
+  border-radius: 8px;
+  background: #ECEAE1;
+  box-shadow: 0 0 0 6px #ECEAE1;
+  translate: 0 -3px;
+}
+
+/* Imágenes de proyectos un poco más apagadas sobre el fondo oscuro */
+body:not(.light) .claro-proyecto-imagen img,
+body:not(.light) .claro-proyecto-imagen video {
+  filter: brightness(0.92);
+}
+
+/* Botón "+" de cada tarjeta de habilidades */
+body:not(.light) .claro-btn-mas {
+  background: var(--tema-pildora);
+  color: var(--tema-texto);
+}
+
+body:not(.light) .claro-btn-mas:hover {
+  background: var(--tema-suave-hover);
+}
+
+/* Menú de celular */
+body:not(.light) .claro-menu-movil {
+  background: color-mix(in srgb, var(--tema-fondo) 97%, transparent);
+}
+
+/* El azul niebla es claro: el texto que va encima pasa a oscuro */
+body:not(.light) .bg-acento.text-white,
+body:not(.light) .text-white.hover\:bg-acento:hover,
+body:not(.light) .hover\:bg-acento.hover\:text-white:hover {
+  color: #1F1E1D;
 }

@@ -1,4 +1,4 @@
-import { useApp } from '../context/AppContext';
+import { useApp } from '../context/useApp';
 import { useEffect, useRef } from 'react';
 
 /**
@@ -60,13 +60,13 @@ export default function Footer() {
   return (
     <footer className="w-full mt-auto">
       <div className={`
-        w-full py-6 xl:py-4 px-6 sm:px-10 md:px-12 transition-all duration-700 border-t
+        claro-footer w-full py-6 xl:py-4 px-6 sm:px-10 md:px-12 transition-all duration-700 border-t
         ${isDark
           ? 'bg-[#0A0E17] border-white/5 text-slate-400'
           : 'bg-[var(--color-light-bg-secondary)] border-slate-200 text-slate-700'
         }
       `}>
-        <div className="max-w-[1800px] mx-auto flex flex-col xl:flex-row items-center justify-between gap-6 xl:gap-4 min-w-0">
+        <div className="claro-contenedor max-w-[1800px] mx-auto flex flex-col xl:flex-row items-center justify-between gap-6 xl:gap-4 min-w-0">
 
           {/* Espaciador XL */}
           <div className="hidden xl:block xl:flex-1" />
@@ -79,7 +79,7 @@ export default function Footer() {
             <div
               ref={textRef}
               className={`
-                flex items-center justify-center gap-1.5 sm:gap-3 whitespace-nowrap uppercase 
+                claro-footer-frase flex items-center justify-center gap-1.5 sm:gap-3 whitespace-nowrap uppercase 
                 font-['Quicksand']
                 ${isDark ? 'font-light' : 'font-semibold'}
               `}
@@ -89,8 +89,8 @@ export default function Footer() {
 
               {/* Ícono código */}
               <div className={`
-                flex-shrink-0
-                ${isDark ? 'text-[#0078C8] opacity-60' : 'text-[#0078C8] opacity-80'}
+                claro-footer-code flex-shrink-0
+                ${isDark ? 'text-acento opacity-60' : 'text-acento opacity-80'}
               `}>
                 <svg
                   className="w-3.5 h-3.5 sm:w-4.5 sm:h-4.5 md:w-5 md:h-5"
@@ -117,14 +117,14 @@ export default function Footer() {
               onClick={scrollToTop}
               className={`
                 group flex items-center gap-2.5 sm:gap-3 transition-all duration-300
-                ${isDark ? 'hover:text-[#0078C8]' : 'hover:text-[#0078C8] text-slate-900'}
+                ${isDark ? 'hover:text-acento' : 'hover:text-acento text-slate-900'}
               `}
             >
               <span className={`
-                text-[8px] sm:text-[9px] font-['Quicksand'] font-bold uppercase 
+                claro-footer-volver text-[8px] sm:text-[9px] font-['Quicksand'] font-bold uppercase 
                 tracking-[0.18em] sm:tracking-[0.2em] transition-all whitespace-nowrap
                 ${isDark
-                  ? 'text-slate-400 group-hover:text-[#0078C8]'
+                  ? 'text-slate-400 group-hover:text-acento'
                   : 'opacity-70 group-hover:opacity-100'
                 }
               `}>
@@ -132,13 +132,13 @@ export default function Footer() {
               </span>
 
               <div className={`
-                flex-shrink-0 flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 
+                claro-footer-arriba flex-shrink-0 flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 
                 rounded-xl transition-all duration-500
                 ${isDark
-                  ? 'bg-white/5 text-white group-hover:bg-[#0078C8]'
-                  : 'bg-slate-900 text-white group-hover:bg-[#0078C8]'
+                  ? 'bg-white/5 text-white group-hover:bg-acento'
+                  : 'bg-slate-900 text-white group-hover:bg-acento'
                 } 
-                group-hover:shadow-[0_5px_15px_rgba(0,120,200,0.3)]
+                group-hover:shadow-[0_5px_15px] group-hover:shadow-acento/30
               `}>
                 <svg
                   className="w-3.5 h-3.5 sm:w-4 sm:h-4 transform group-hover:-translate-y-1 transition-transform duration-300"

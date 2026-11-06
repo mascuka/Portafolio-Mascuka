@@ -1,4 +1,4 @@
-import { useApp } from '../../context/AppContext';
+import { useApp } from '../../context/useApp';
 import Button from './Button';
 
 /**
@@ -28,13 +28,13 @@ export default function SectionHeader({
             inline-flex items-center gap-3 px-4 py-2 rounded-full backdrop-blur-sm border mb-4
             transition-all duration-300
             ${isDark 
-              ? 'bg-[#00A3FF]/10 border-[#00A3FF]/30 hover:bg-[#00A3FF]/15' 
-              : 'bg-[#0078C8]/15 border-[#0078C8]/50 hover:bg-[#0078C8]/20'
+              ? 'bg-acento-light/10 border-acento-light/30 hover:bg-acento-light/15' 
+              : 'bg-acento/15 border-acento/50 hover:bg-acento/20'
             }
           `}>
             <span className={`
               text-[10px] font-black uppercase tracking-[0.25em]
-              ${isDark ? 'text-[#00A3FF]' : 'text-[#005A96]'}
+              ${isDark ? 'text-acento-light' : 'text-acento-hover'}
             `}>
               {badge}
             </span>
@@ -54,7 +54,7 @@ export default function SectionHeader({
         {/* Línea decorativa */}
         <div className={`
           h-[2px] w-16 bg-gradient-to-r to-transparent
-          ${isDark ? 'from-[#00A3FF]' : 'from-[#0078C8]'}
+          ${isDark ? 'from-acento-light' : 'from-acento'}
         `} />
         
         {/* Descripción opcional */}

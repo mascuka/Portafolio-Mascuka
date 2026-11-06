@@ -1,5 +1,5 @@
 import { getButtonClass } from '../../constants/styles';
-import { useApp } from '../../context/AppContext';
+import { useApp } from '../../context/useApp';
 
 /**
  * BOTÓN REUTILIZABLE

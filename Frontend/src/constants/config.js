@@ -6,6 +6,7 @@
 // Admin
 export const ADMIN_EMAIL = "mascuka410@gmail.com";
 export const ADMIN_DETECTED_KEY = 'portfolio_admin_detected';
+export const GOOGLE_OAUTH_CLIENT_ID = import.meta.env.VITE_GOOGLE_OAUTH_CLIENT_ID;
 
 // Cloudinary
 export const CLOUDINARY_CONFIG = {

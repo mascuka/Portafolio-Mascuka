@@ -21,13 +21,9 @@ export const useCloudinary = () => {
     setProgress(0);
     
     try {
-      const result = await uploadToCloudinary(file, folder, (percent) => {
+      return await uploadToCloudinary(file, folder, (percent) => {
         setProgress(percent);
       });
-      
-      return result;
-    } catch (error) {
-      throw error;
     } finally {
       setUploading(false);
       setProgress(0);
@@ -40,11 +36,7 @@ export const useCloudinary = () => {
    * @returns {Promise} Resultado de la eliminación
    */
   const deleteImage = async (publicId) => {
-    try {
-      return await deleteFromCloudinary(publicId);
-    } catch (error) {
-      throw error;
-    }
+    return deleteFromCloudinary(publicId);
   };
 
   return { 

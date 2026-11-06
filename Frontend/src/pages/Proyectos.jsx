@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
-import { useApp } from '../context/AppContext';
+import { useState, useEffect } from 'react';
+import { useApp } from '../context/useApp';
 import { useModal } from '../hooks/useModal';
 import { useCloudinary } from '../hooks/useCloudinary';
 import { useTranslate } from '../hooks/useTranslate';
@@ -29,7 +29,6 @@ export default function Proyectos({ projects, onUpdate }) {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [techCarouselIndex, setTechCarouselIndex] = useState(0);
   const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? document.documentElement.clientWidth : 1024);
-  const [editingRowIndex, setEditingRowIndex] = useState(null);
   const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0, message: '' });
   
   const [formData, setFormData] = useState({ 
@@ -78,12 +77,12 @@ export default function Proyectos({ projects, onUpdate }) {
 
   const projectsList = Array.isArray(projects?.list || projects) ? (projects?.list || projects) : [];
   
-// Breakpoints ajustados - Pasan más rápido para evitar apretujamiento
 const isMobile = windowWidth < 640;
-const isSmall = windowWidth >= 640 && windowWidth < 1100;   // Pasa a 2
-const isTablet = windowWidth >= 1100 && windowWidth < 1450; // Pasa a 3 en 1450px
-const isMedium = windowWidth >= 1450 && windowWidth < 1700; // Pasa a 4
-const cardsPerRow = isMobile ? 1 : isSmall ? 2 : isTablet ? 3 : isMedium ? 4 : 5;
+// Columnas de 280px como mínimo (hasta 4 por fila) dentro de un contenedor de
+// 1400px con margen lateral clamp(20px, 5vw, 72px) y 16px entre tarjetas;
+// iguales en los dos modos para que la página no salte al cambiar de tema
+const anchoContenido = Math.min(windowWidth, 1400) - 2 * Math.min(72, Math.max(20, windowWidth * 0.05));
+const cardsPerRow = Math.max(1, Math.min(4, Math.floor((anchoContenido + 16) / (280 + 16))));
 
   // Agrupar proyectos por fila
   const getProjectsByRow = () => {
@@ -485,7 +484,6 @@ const cardsPerRow = isMobile ? 1 : isSmall ? 2 : isTablet ? 3 : isMedium ? 4 : 5
       rowIndex,
       title: currentTitle
     });
-    setEditingRowIndex(rowIndex);
     editRowTitleModal.open();
   };
 
@@ -549,24 +547,24 @@ const cardsPerRow = isMobile ? 1 : isSmall ? 2 : isTablet ? 3 : isMedium ? 4 : 5
   const rowsData = getProjectsByRow();
 
   return (
-    <SectionWrapper id="Proyectos">
-      <div className="relative w-full max-w-[1800px] mx-auto px-4 sm:px-6 md:px-12 lg:px-20 z-10">
+    <SectionWrapper id="Proyectos" banda>
+      <div className="claro-contenedor claro-contenedor-proyectos relative w-full max-w-[1800px] mx-auto px-4 sm:px-6 md:px-12 lg:px-20 z-10">
         
         {/* Header Section */}
         <div className={`flex items-center justify-center gap-4 sm:gap-6 relative ${
           (headerData.description || headerData.descriptionEN) ? 'mb-8 sm:mb-8' : 'mb-8 sm:mb-20'
         }`}>
           <div className="text-center">
-            <h1 className={`text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black tracking-tighter leading-none mb-3 transition-all duration-700 ${
+            <h1 className={`claro-seccion-titulo text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black tracking-tighter leading-none mb-3 transition-all duration-700 ${
               isDark ? 'text-white' : 'text-slate-900'
             }`}>
               {lang === 'ES' ? headerData.title : (headerData.titleEN || headerData.title)}
             </h1>
-            <div className={`h-[2px] w-32 sm:w-40 bg-gradient-to-r from-transparent via-[#0078C8] to-transparent mx-auto`} />
+            <div className={`h-[2px] w-32 sm:w-40 bg-gradient-to-r from-transparent via-acento to-transparent mx-auto claro-regla`} />
             
             {/* Descripción opcional */}
             {(headerData.description || headerData.descriptionEN) && (
-              <p className={`mt-4 sm:mt-6 text-sm sm:text-base md:text-lg max-w-5xl mx-auto transition-all duration-700 ${
+              <p className={`claro-seccion-desc mt-4 sm:mt-6 text-sm sm:text-base md:text-lg max-w-5xl mx-auto transition-all duration-700 ${
                 isDark ? 'text-slate-400' : 'text-slate-600'
               }`}>
                 {lang === 'ES' ? headerData.description : (headerData.descriptionEN || headerData.description)}
@@ -578,13 +576,13 @@ const cardsPerRow = isMobile ? 1 : isSmall ? 2 : isTablet ? 3 : isMedium ? 4 : 5
             <div className="absolute right-0 flex items-center gap-2">
               <button 
                 onClick={handleAdd}
-                className="px-3 sm:px-4 py-2 rounded-lg text-[8px] sm:text-[9px] font-bold uppercase tracking-wider transition-all bg-[#0078C8] text-white hover:bg-[#005A96] opacity-60 hover:opacity-100"
+                className="px-3 sm:px-4 py-2 rounded-lg text-[8px] sm:text-[9px] font-bold uppercase tracking-wider transition-all claro-btn-oscuro bg-acento text-white hover:bg-acento-hover opacity-60 hover:opacity-100"
               >
                 + Nuevo
               </button>
               <button 
                 onClick={editHeaderModal.open} 
-                className={`p-2 rounded-lg transition-all opacity-60 hover:opacity-100 ${
+                className={`p-2 rounded-lg transition-all opacity-60 hover:opacity-100 claro-btn-suave ${
                   isDark ? 'bg-white/5 hover:bg-white/10 text-white/60' : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
                 }`}
               >
@@ -608,7 +606,7 @@ const cardsPerRow = isMobile ? 1 : isSmall ? 2 : isTablet ? 3 : isMedium ? 4 : 5
               
               return (
                 <RowCarousel
-                  key={`${rowNumber}-${cardsPerRow}`}
+                  key={`${rowNumber}-${cardsPerRow}-${rowProjects.length}`}
                   rowNumber={rowNumber}
                   rowTitle={headerData.rowTitles?.[rowNumber]}
                   rowTitleEN={headerData.rowTitles?.[`${rowNumber}_EN`]}
@@ -649,7 +647,7 @@ const cardsPerRow = isMobile ? 1 : isSmall ? 2 : isTablet ? 3 : isMedium ? 4 : 5
             helper="Descripción que aparecerá debajo del título. Se traducirá automáticamente al inglés. Dejar vacío para no mostrar."
           />
           <div className="space-y-2">
-            <label className="text-[10px] font-black uppercase tracking-widest text-[#0078C8]">
+            <label className="text-[10px] font-black uppercase tracking-widest text-acento">
               Cantidad de Filas
             </label>
             <select 
@@ -657,8 +655,8 @@ const cardsPerRow = isMobile ? 1 : isSmall ? 2 : isTablet ? 3 : isMedium ? 4 : 5
               onChange={(e) => setHeaderData({...headerData, rows: parseInt(e.target.value)})}
               className={`w-full p-3 rounded-xl border-2 outline-none transition-all text-sm ${
                 isDark 
-                  ? 'bg-[#0F172A] border-white/10 text-white focus:border-[#0078C8]' 
-                  : 'bg-white border-slate-200 text-slate-900 focus:border-[#0078C8]'
+                  ? 'bg-[#0F172A] border-white/10 text-white focus:border-acento' 
+                  : 'bg-white border-slate-200 text-slate-900 focus:border-acento'
               }`}
             >
               {[1, 2, 3, 4, 5].map(num => (
@@ -701,11 +699,11 @@ const cardsPerRow = isMobile ? 1 : isSmall ? 2 : isTablet ? 3 : isMedium ? 4 : 5
             helper="Se traducirá automáticamente al inglés"
           />
           <div className="space-y-3">
-            <label className="text-[10px] font-black uppercase tracking-widest text-[#0078C8]">
+            <label className="text-[10px] font-black uppercase tracking-widest text-acento">
               Imágenes y Videos del Proyecto
             </label>
             <div className={`border-2 border-dashed rounded-xl p-4 text-center cursor-pointer transition-all ${
-              isDark ? 'border-white/10 hover:border-[#0078C8]/40 bg-white/5' : 'border-slate-200 hover:border-[#0078C8]/40 bg-slate-50'
+              isDark ? 'border-white/10 hover:border-acento/40 bg-white/5' : 'border-slate-200 hover:border-acento/40 bg-slate-50'
             }`}>
               <input type="file" accept="image/*,video/*" multiple onChange={handleImageChange} className="hidden" id="project-images" />
               <label htmlFor="project-images" className="cursor-pointer">
@@ -723,16 +721,16 @@ const cardsPerRow = isMobile ? 1 : isSmall ? 2 : isTablet ? 3 : isMedium ? 4 : 5
                 {formData.images.map((media, idx) => (
                   <div key={idx} className="relative group">
                     {isVideo(media) ? (
-                      <video src={media} className="w-full h-20 object-cover rounded-lg border border-[#0078C8]/30" muted />
+                      <video src={media} className="w-full h-20 object-cover rounded-lg border border-acento/30" muted />
                     ) : (
-                      <img src={media} alt="" className="w-full h-20 object-cover rounded-lg border border-[#0078C8]/30" />
+                      <img src={media} alt="" className="w-full h-20 object-cover rounded-lg border border-acento/30" />
                     )}
                     <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center gap-1">
                       <button
                         type="button"
                         onClick={() => moveImage(idx, 'left')}
                         disabled={idx === 0}
-                        className="p-1 bg-blue-500 text-white rounded disabled:opacity-30 disabled:cursor-not-allowed"
+                        className="p-1 bg-acento text-white rounded disabled:opacity-30 disabled:cursor-not-allowed"
                       >
                         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
@@ -742,7 +740,7 @@ const cardsPerRow = isMobile ? 1 : isSmall ? 2 : isTablet ? 3 : isMedium ? 4 : 5
                         type="button"
                         onClick={() => moveImage(idx, 'right')}
                         disabled={idx === formData.images.length - 1}
-                        className="p-1 bg-blue-500 text-white rounded disabled:opacity-30 disabled:cursor-not-allowed"
+                        className="p-1 bg-acento text-white rounded disabled:opacity-30 disabled:cursor-not-allowed"
                       >
                         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
@@ -768,7 +766,7 @@ const cardsPerRow = isMobile ? 1 : isSmall ? 2 : isTablet ? 3 : isMedium ? 4 : 5
           </div>
 
           <div>
-            <label className="text-[10px] font-black uppercase tracking-widest text-[#0078C8] block mb-2">
+            <label className="text-[10px] font-black uppercase tracking-widest text-acento block mb-2">
               Fila
             </label>
             <select
@@ -783,8 +781,8 @@ const cardsPerRow = isMobile ? 1 : isSmall ? 2 : isTablet ? 3 : isMedium ? 4 : 5
               }}
               className={`w-full px-4 py-2.5 rounded-xl border-2 transition-all text-sm ${
                 isDark
-                  ? 'bg-slate-800/50 border-slate-700 text-white focus:border-[#0078C8]'
-                  : 'bg-white border-slate-200 text-slate-900 focus:border-[#0078C8]'
+                  ? 'bg-slate-800/50 border-slate-700 text-white focus:border-acento'
+                  : 'bg-white border-slate-200 text-slate-900 focus:border-acento'
               }`}
             >
               {Array.from({ length: headerData.rows || 1 }, (_, i) => i + 1).map(row => (
@@ -796,7 +794,7 @@ const cardsPerRow = isMobile ? 1 : isSmall ? 2 : isTablet ? 3 : isMedium ? 4 : 5
           </div>
           
           <div>
-            <label className="text-[10px] font-black uppercase tracking-widest text-[#0078C8] block mb-2">
+            <label className="text-[10px] font-black uppercase tracking-widest text-acento block mb-2">
               Posición en la Fila
             </label>
             <select
@@ -804,8 +802,8 @@ const cardsPerRow = isMobile ? 1 : isSmall ? 2 : isTablet ? 3 : isMedium ? 4 : 5
               onChange={(e) => setFormData({...formData, order: e.target.value ? parseInt(e.target.value) : null})}
               className={`w-full px-4 py-2.5 rounded-xl border-2 transition-all text-sm ${
                 isDark
-                  ? 'bg-slate-800/50 border-slate-700 text-white focus:border-[#0078C8]'
-                  : 'bg-white border-slate-200 text-slate-900 focus:border-[#0078C8]'
+                  ? 'bg-slate-800/50 border-slate-700 text-white focus:border-acento'
+                  : 'bg-white border-slate-200 text-slate-900 focus:border-acento'
               }`}
             >
               <option value="">Seleccionar posición...</option>
@@ -821,13 +819,13 @@ const cardsPerRow = isMobile ? 1 : isSmall ? 2 : isTablet ? 3 : isMedium ? 4 : 5
           
           {/* Tecnologías Utilizadas */}
           <div className="space-y-3">
-            <label className="text-[10px] font-black uppercase tracking-widest text-[#0078C8]">
+            <label className="text-[10px] font-black uppercase tracking-widest text-acento">
               Tecnologías Utilizadas (Opcional)
             </label>
             
             {/* Opción 1: Subir archivos */}
             <div className={`border-2 border-dashed rounded-xl p-3 text-center cursor-pointer transition-all ${
-              isDark ? 'border-white/10 hover:border-[#0078C8]/40 bg-white/5' : 'border-slate-200 hover:border-[#0078C8]/40 bg-slate-50'
+              isDark ? 'border-white/10 hover:border-acento/40 bg-white/5' : 'border-slate-200 hover:border-acento/40 bg-slate-50'
             }`}>
               <input 
                 type="file" 
@@ -859,8 +857,8 @@ const cardsPerRow = isMobile ? 1 : isSmall ? 2 : isTablet ? 3 : isMedium ? 4 : 5
                   id="tech-url-input"
                   className={`flex-1 px-3 py-2 rounded-lg border text-xs transition-all ${
                     isDark 
-                      ? 'bg-slate-800/50 border-slate-700 text-white placeholder-slate-500 focus:border-[#0078C8]' 
-                      : 'bg-white border-slate-200 text-slate-900 placeholder-slate-400 focus:border-[#0078C8]'
+                      ? 'bg-slate-800/50 border-slate-700 text-white placeholder-slate-500 focus:border-acento' 
+                      : 'bg-white border-slate-200 text-slate-900 placeholder-slate-400 focus:border-acento'
                   }`}
                 />
                 <button
@@ -873,7 +871,7 @@ const cardsPerRow = isMobile ? 1 : isSmall ? 2 : isTablet ? 3 : isMedium ? 4 : 5
                     }
                   }}
                   className={`px-3 py-2 rounded-lg font-bold text-xs uppercase tracking-wider transition-all whitespace-nowrap ${
-                    'bg-[#0078C8] text-white hover:bg-[#005A96]'
+                    'bg-acento text-white hover:bg-acento-hover'
                   }`}
                 >
                   + URL
@@ -903,7 +901,7 @@ const cardsPerRow = isMobile ? 1 : isSmall ? 2 : isTablet ? 3 : isMedium ? 4 : 5
                             type="button"
                             onClick={() => moveTechnology(idx, 'left')}
                             disabled={idx === 0}
-                            className="p-0.5 bg-blue-500 text-white rounded text-xs disabled:opacity-30 disabled:cursor-not-allowed"
+                            className="p-0.5 bg-acento text-white rounded text-xs disabled:opacity-30 disabled:cursor-not-allowed"
                           >
                             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
@@ -913,7 +911,7 @@ const cardsPerRow = isMobile ? 1 : isSmall ? 2 : isTablet ? 3 : isMedium ? 4 : 5
                             type="button"
                             onClick={() => moveTechnology(idx, 'right')}
                             disabled={idx === formData.technologies.length - 1}
-                            className="p-0.5 bg-blue-500 text-white rounded text-xs disabled:opacity-30 disabled:cursor-not-allowed"
+                            className="p-0.5 bg-acento text-white rounded text-xs disabled:opacity-30 disabled:cursor-not-allowed"
                           >
                             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
@@ -937,8 +935,8 @@ const cardsPerRow = isMobile ? 1 : isSmall ? 2 : isTablet ? 3 : isMedium ? 4 : 5
                         placeholder="Nombre (opcional)"
                         className={`mt-1.5 w-full px-2 py-1 text-[10px] text-center rounded border transition-all ${
                           isDark 
-                            ? 'bg-slate-800/50 border-slate-700 text-white placeholder-slate-500 focus:border-[#0078C8]' 
-                            : 'bg-white border-slate-200 text-slate-900 placeholder-slate-400 focus:border-[#0078C8]'
+                            ? 'bg-slate-800/50 border-slate-700 text-white placeholder-slate-500 focus:border-acento' 
+                            : 'bg-white border-slate-200 text-slate-900 placeholder-slate-400 focus:border-acento'
                         }`}
                       />
                     </div>
@@ -960,7 +958,7 @@ const cardsPerRow = isMobile ? 1 : isSmall ? 2 : isTablet ? 3 : isMedium ? 4 : 5
                 isDark ? 'bg-slate-700' : 'bg-slate-200'
               }`}>
                 <div 
-                  className="h-full bg-gradient-to-r from-[#0078C8] to-[#00A8E8] transition-all duration-300 ease-out relative overflow-hidden"
+                  className="h-full bg-gradient-to-r from-acento to-[#00A8E8] transition-all duration-300 ease-out relative overflow-hidden"
                   style={{ 
                     width: `${uploadProgress.percent !== undefined ? uploadProgress.percent : (uploadProgress.current / uploadProgress.total) * 100}%` 
                   }}
@@ -975,7 +973,7 @@ const cardsPerRow = isMobile ? 1 : isSmall ? 2 : isTablet ? 3 : isMedium ? 4 : 5
                 <span className={isDark ? 'text-slate-400' : 'text-slate-500'}>
                   Archivo {uploadProgress.current} de {uploadProgress.total}
                 </span>
-                <span className={`font-bold ${isDark ? 'text-[#0078C8]' : 'text-[#0078C8]'}`}>
+                <span className={`font-bold ${isDark ? 'text-acento' : 'text-acento'}`}>
                   Total: {Math.round(((uploadProgress.current - 1) / uploadProgress.total + (uploadProgress.percent || 0) / (100 * uploadProgress.total)) * 100)}%
                 </span>
               </div>
@@ -1033,7 +1031,7 @@ const cardsPerRow = isMobile ? 1 : isSmall ? 2 : isTablet ? 3 : isMedium ? 4 : 5
                 <>
                   <button
                     onClick={() => navigateImage('prev')}
-                    className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 bg-black/30 hover:bg-[#0078C8] text-white w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center transition-all z-50 backdrop-blur-md"
+                    className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 bg-black/30 hover:bg-acento text-white w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center transition-all z-50 backdrop-blur-md"
                   >
                     <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M15 19l-7-7 7-7" />
@@ -1041,7 +1039,7 @@ const cardsPerRow = isMobile ? 1 : isSmall ? 2 : isTablet ? 3 : isMedium ? 4 : 5
                   </button>
                   <button
                     onClick={() => navigateImage('next')}
-                    className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 bg-black/30 hover:bg-[#0078C8] text-white w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center transition-all z-50 backdrop-blur-md"
+                    className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 bg-black/30 hover:bg-acento text-white w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center transition-all z-50 backdrop-blur-md"
                   >
                     <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M9 5l7 7-7 7" />
@@ -1083,7 +1081,7 @@ const cardsPerRow = isMobile ? 1 : isSmall ? 2 : isTablet ? 3 : isMedium ? 4 : 5
                           return newIndex < 0 ? selectedProject.technologies.length - 1 : newIndex;
                         });
                       }}
-                      className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-3 z-10 p-2 rounded-full bg-[#0078C8] text-white hover:scale-110 transition-all"
+                      className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-3 z-10 p-2 claro-flecha rounded-full bg-acento text-white hover:scale-110 transition-all"
                     >
                       <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
@@ -1116,7 +1114,7 @@ const cardsPerRow = isMobile ? 1 : isSmall ? 2 : isTablet ? 3 : isMedium ? 4 : 5
                       onClick={() => {
                         setTechCarouselIndex(prev => (prev + 1) % selectedProject.technologies.length);
                       }}
-                      className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-3 z-10 p-2 rounded-full bg-[#0078C8] text-white hover:scale-110 transition-all"
+                      className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-3 z-10 p-2 claro-flecha rounded-full bg-acento text-white hover:scale-110 transition-all"
                     >
                       <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
@@ -1152,10 +1150,6 @@ function RowCarousel({
   onEditRowTitle,
   onDeleteRowTitle
 }) {
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [isTransitioning, setIsTransitioning] = useState(false);
-  const [virtualIndex, setVirtualIndex] = useState(0); // Índice virtual que siempre crece/decrece
-
   const sortedProjects = [...projects].sort((a, b) => {
     const orderA = a.order !== null && a.order !== undefined ? a.order : Infinity;
     const orderB = b.order !== null && b.order !== undefined ? b.order : Infinity;
@@ -1192,29 +1186,18 @@ function RowCarousel({
   };
   
   const validPositions = getValidPositions();
+
+  const [currentIndex, setCurrentIndex] = useState(() => (
+    needsCarousel && validPositions.length
+      ? validPositions[0] + groupedProjects.length
+      : 0
+  ));
+  const [isTransitioning, setIsTransitioning] = useState(false);
   
   // Triplicar grupos para buffer infinito
   const displayGroups = needsCarousel 
     ? [...groupedProjects, ...groupedProjects, ...groupedProjects] 
     : groupedProjects;
-
-  // Inicializar en el medio del buffer triplicado
-  useEffect(() => {
-    if (needsCarousel && virtualIndex === 0) {
-      setVirtualIndex(groupedProjects.length);
-      setCurrentIndex(validPositions[0] + groupedProjects.length);
-    }
-  }, []);
-
-  // Resetear carrusel cuando cambia el número de cards por fila (resize)
-  useEffect(() => {
-    if (needsCarousel) {
-      setVirtualIndex(groupedProjects.length);
-      setCurrentIndex(validPositions[0] + groupedProjects.length);
-      setIsTransitioning(false);
-    }
-  }, [cardsPerRow]);
-
 
   const handleNavigation = (direction) => {
     if (isTransitioning || !needsCarousel) return;
@@ -1241,7 +1224,6 @@ function RowCarousel({
       }
       
       setCurrentIndex(newIndex);
-      setVirtualIndex(prev => prev + 1);
       
       setTimeout(() => {
         setIsTransitioning(false);
@@ -1271,7 +1253,6 @@ function RowCarousel({
       }
       
       setCurrentIndex(newIndex);
-      setVirtualIndex(prev => prev - 1);
       
       setTimeout(() => {
         setIsTransitioning(false);
@@ -1318,7 +1299,7 @@ function RowCarousel({
             <div className="flex gap-2">
               <button
                 onClick={() => onEditRowTitle(rowNumber)}
-                className={`p-2 rounded-lg transition-all opacity-60 hover:opacity-100 ${
+                className={`p-2 rounded-lg transition-all opacity-60 hover:opacity-100 claro-btn-suave ${
                   isDark ? 'bg-white/5 hover:bg-white/10 text-white/60' : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
                 }`}
               >
@@ -1328,7 +1309,7 @@ function RowCarousel({
               </button>
               <button
                 onClick={() => onDeleteRowTitle(rowNumber)}
-                className={`p-2 rounded-lg transition-all opacity-60 hover:opacity-100 ${
+                className={`p-2 rounded-lg transition-all opacity-60 hover:opacity-100 claro-btn-borrar ${
                   isDark ? 'bg-red-500/10 hover:bg-red-500/20 text-red-400' : 'bg-red-50 hover:bg-red-100 text-red-500'
                 }`}
               >
@@ -1345,10 +1326,10 @@ function RowCarousel({
         <div className="mb-6 px-2">
           <button
             onClick={() => onEditRowTitle(rowNumber)}
-            className={`text-sm px-4 py-2 rounded-lg border-2 border-dashed transition-all opacity-60 hover:opacity-100 ${
+            className={`claro-btn-punteado text-sm px-4 py-2 rounded-lg border-2 border-dashed transition-all opacity-60 hover:opacity-100 ${
               isDark 
-                ? 'border-white/10 text-slate-500 hover:border-[#0078C8] hover:text-[#0078C8]'
-                : 'border-slate-300 text-slate-400 hover:border-[#0078C8] hover:text-[#0078C8]'
+                ? 'border-white/10 text-slate-500 hover:border-acento hover:text-acento'
+                : 'border-slate-300 text-slate-400 hover:border-acento hover:text-acento'
             }`}
           >
             + Añadir título a esta fila
@@ -1364,8 +1345,8 @@ function RowCarousel({
               <button 
                 onClick={() => handleNavigation('prev')} 
                 disabled={isTransitioning}
-                className={`absolute top-1/2 -translate-y-1/2 z-30 w-9 h-9 sm:w-10 sm:h-10 items-center justify-center rounded-full transition-all duration-300 hover:scale-110 flex disabled:opacity-30 disabled:cursor-not-allowed ${
-                  isDark ? 'bg-[#0078C8] text-white shadow-lg shadow-[#0078C8]/30' : 'bg-[#0078C8] text-white shadow-lg'
+                className={`absolute top-1/2 -translate-y-1/2 z-30 w-9 h-9 sm:w-10 sm:h-10 items-center justify-center claro-flecha rounded-full transition-all duration-300 hover:scale-110 flex disabled:opacity-30 disabled:cursor-not-allowed ${
+                  isDark ? 'bg-acento text-white shadow-lg shadow-acento/30' : 'bg-acento text-white shadow-lg'
                 } ${isMobile ? 'left-0' : 'left-0 sm:-translate-x-4 md:-translate-x-12'}`}
               >
                 <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1375,8 +1356,8 @@ function RowCarousel({
               <button 
                 onClick={() => handleNavigation('next')} 
                 disabled={isTransitioning}
-                className={`absolute top-1/2 -translate-y-1/2 z-30 w-9 h-9 sm:w-10 sm:h-10 items-center justify-center rounded-full transition-all duration-300 hover:scale-110 flex disabled:opacity-30 disabled:cursor-not-allowed ${
-                  isDark ? 'bg-[#0078C8] text-white shadow-lg shadow-[#0078C8]/30' : 'bg-[#0078C8] text-white shadow-lg'
+                className={`absolute top-1/2 -translate-y-1/2 z-30 w-9 h-9 sm:w-10 sm:h-10 items-center justify-center claro-flecha rounded-full transition-all duration-300 hover:scale-110 flex disabled:opacity-30 disabled:cursor-not-allowed ${
+                  isDark ? 'bg-acento text-white shadow-lg shadow-acento/30' : 'bg-acento text-white shadow-lg'
                 } ${isMobile ? 'right-0' : 'right-0 sm:translate-x-4 md:translate-x-12'}`}
               >
                 <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1501,9 +1482,9 @@ function RowCarousel({
                       setTimeout(() => setIsTransitioning(false), 500);
                     }
                   }} 
-                  className={`h-1.5 rounded-full transition-all duration-300 ${
+                  className={`claro-punto-carrusel h-1.5 rounded-full transition-all duration-300 ${
                     currentIndex === idx
-                      ? 'bg-[#0078C8] w-8' 
+                      ? 'bg-acento w-8' 
                       : (isDark ? 'bg-white/10 w-2 hover:w-3 hover:bg-white/20' : 'bg-slate-200 w-2 hover:w-3 hover:bg-slate-300')
                   }`} 
                 />
@@ -1521,7 +1502,7 @@ function RowCarousel({
 }
 
 // Componente ProjectCard - SIN CAMBIOS
-function ProjectCard({ project, isDark, lang, isAdmin, onEdit, onDelete, onImageClick, isMobile = false }) {
+function ProjectCard({ project, isDark, lang, isAdmin, onEdit, onDelete, onImageClick }) {
   const [currentImgIndex, setCurrentImgIndex] = useState(0);
   const images = project.images && project.images.length > 0 ? project.images : [project.image];
   const hasMultipleImages = images.length > 1;
@@ -1541,14 +1522,14 @@ function ProjectCard({ project, isDark, lang, isAdmin, onEdit, onDelete, onImage
 
   return (
     <div className="group relative h-full min-h-[380px] sm:min-h-[420px] flex flex-col">
-      <div className={`relative h-full flex flex-col rounded-3xl border overflow-hidden transition-all duration-700 ${
+      <div className={`claro-proyecto relative h-full flex flex-col rounded-3xl border overflow-hidden transition-all duration-700 ${
         isDark 
-          ? 'bg-[#0F172A]/40 border-white/5 group-hover:border-[#0078C8]/40 shadow-2xl shadow-black/50' 
-          : 'bg-white border-slate-200 shadow-xl group-hover:border-[#0078C8]/40'
+          ? 'bg-[#0F172A]/40 border-white/5 group-hover:border-acento/40 shadow-2xl shadow-black/50' 
+          : 'bg-white border-[var(--color-light-border)] shadow-suave group-hover:shadow-suave-hover group-hover:border-acento/40'
       }`}>
         
         {/* Imagen/Video - Ajuste de aspect ratio en mobile para dar espacio */}
-        <div className="relative overflow-hidden aspect-video sm:aspect-[16/9] flex-shrink-0 cursor-pointer" onClick={() => onImageClick(currentImgIndex)}>
+        <div className="claro-proyecto-imagen relative overflow-hidden aspect-video sm:aspect-[16/9] flex-shrink-0 cursor-pointer" onClick={() => onImageClick(currentImgIndex)}>
           {isCurrentVideo ? (
             <video 
               src={currentMedia}
@@ -1589,9 +1570,9 @@ function ProjectCard({ project, isDark, lang, isAdmin, onEdit, onDelete, onImage
         </div>
 
         {/* Contenido - Padding reducido para cards más compactas */}
-        <div className="p-3 sm:p-4 flex flex-col flex-1 min-h-0">
+        <div className="claro-proyecto-cuerpo p-3 sm:p-4 flex flex-col flex-1 min-h-0">
           {/* Título */}
-          <h4 className={`text-lg sm:text-xl font-black tracking-tight mb-2 leading-tight text-center transition-colors duration-300 flex-shrink-0 ${
+          <h4 className={`claro-proyecto-titulo text-lg sm:text-xl font-black tracking-tight mb-2 leading-tight text-center transition-colors duration-300 flex-shrink-0 ${
             isDark ? 'text-white' : 'text-slate-900'
           }`}
           style={{
@@ -1610,19 +1591,19 @@ function ProjectCard({ project, isDark, lang, isAdmin, onEdit, onDelete, onImage
             className="mb-3 overflow-hidden flex-shrink-0"
             style={{ 
               // Altura exacta: 120px = 5 líneas × 24px (nunca se corta a la mitad)
-              height: '120px'
+              height: '135px'
             }}
           >
-            <p className={`text-sm text-center transition-colors duration-300 ${
+            <p className={`claro-proyecto-desc text-sm text-center transition-colors duration-300 ${
               isDark ? 'text-slate-400' : 'text-slate-600'
             }`}
             style={{
               display: '-webkit-box',
-              WebkitLineClamp: 5,
+              WebkitLineClamp: 6,
               WebkitBoxOrient: 'vertical',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
-              lineHeight: '24px'
+              lineHeight: '1.6'
             }}>
               {lang === 'ES' ? project.description : (project.descriptionEN || project.description)}
             </p>
@@ -1630,17 +1611,19 @@ function ProjectCard({ project, isDark, lang, isAdmin, onEdit, onDelete, onImage
 
           {/* Botones - Siempre visibles al final con espacio flexible arriba */}
           <div className="mt-auto flex items-center gap-2 flex-shrink-0">
-            <a href={project.demo} target="_blank" rel="noopener noreferrer" className="flex-1 py-3 px-3 rounded-xl font-black uppercase tracking-[0.15em] text-[10px] transition-all duration-300 flex items-center justify-center gap-2 bg-[#0078C8] text-white hover:bg-[#005A96] shadow-lg shadow-[#0078C8]/20">
+            <a href={project.demo} target="_blank" rel="noopener noreferrer" className={`claro-btn-proyecto flex-1 py-3 px-3 rounded-xl font-black uppercase tracking-[0.15em] text-[10px] transition-all duration-300 flex items-center justify-center gap-2 text-white ${
+              isDark ? 'bg-acento hover:bg-acento-hover shadow-lg shadow-acento/20' : 'bg-acento/60 hover:bg-acento'
+            }`}>
               <span>{lang === 'ES' ? 'Ver Proyecto' : 'View Project'}</span>
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
             </a>
             
             {isAdmin && (
               <div className="flex gap-1.5 flex-shrink-0">
-                <button onClick={onEdit} className="p-2.5 rounded-xl bg-blue-500/10 text-blue-500 hover:bg-blue-500 hover:text-white transition-all">
+                <button onClick={onEdit} className="p-2.5 rounded-xl claro-btn-suave bg-acento/10 text-acento hover:bg-acento hover:text-white transition-all">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" strokeWidth="2" /></svg>
                 </button>
-                <button onClick={onDelete} className="p-2.5 rounded-xl bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all">
+                <button onClick={onDelete} className="p-2.5 rounded-xl claro-btn-borrar bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" strokeWidth="2" /></svg>
                 </button>
               </div>

@@ -59,7 +59,7 @@ export const uploadToCloudinary = (file, folder = CLOUDINARY_CONFIG.folders.port
           } else {
             reject(new Error('Respuesta inválida de Cloudinary'));
           }
-        } catch (error) {
+        } catch {
           reject(new Error('Error parseando respuesta de Cloudinary'));
         }
       } else {
