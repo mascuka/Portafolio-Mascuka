@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useApp } from '../context/useApp';
 import { useModal } from '../hooks/useModal';
 import { useCloudinary } from '../hooks/useCloudinary';
@@ -9,10 +9,24 @@ import Textarea from '../components/ui/Textarea';
 import Button from '../components/ui/Button';
 import SectionWrapper from '../components/SectionWrapper';
 import { getSmallInputClass } from '../constants/styles';
-import { TECNOLOGIAS, iconoTecnologia } from '../constants/tecnologias';
+import { TECNOLOGIAS, iconoTecnologia, buscarTecnologia, resolverTecnologia } from '../constants/tecnologias';
 import { calcularCambiosCV } from '../constants/cambiosCV';
+import { ICONOS_LINEA } from '../constants/iconosLinea';
+import { IconChevronUp, IconChevronDown, IconChevronLeft, IconChevronRight, IconPlus, IconPencil, IconTrash, IconX, IconRosetteDiscountCheck } from '@tabler/icons-react';
 
 const EMPTY_SECTIONS = [];
+
+// Diseño de Habilidades: true = una tarjeta con filas por categoría;
+// false vuelve al diseño anterior de tarjetas en grilla
+const DISENO_EN_FILAS = true;
+// Íconos de las habilidades en el diseño en filas: 'tenue' (color apagado que se
+// enciende al pasar el mouse), 'color' (siempre a color) o 'gris'
+const ESTILO_ICONOS = 'tenue';
+// Tipo de ícono: 'linea' (íconos de Tabler con el color de cada marca) o 'logo'
+// (los logos originales). Las que no tengan ícono de línea usan su logo.
+const TIPO_ICONOS = 'logo';
+// Logos negros que en modo oscuro se invierten para que se vean
+const LOGOS_OSCUROS = ['github', 'nextjs', 'vercel', 'express', 'prisma'];
 
 export default function Habilidades({ data, onUpdate }) {
   const { isDark, isAdmin, lang } = useApp();
@@ -199,7 +213,8 @@ export default function Habilidades({ data, onUpdate }) {
         rows: section.rows || 1,
         width: section.width || '100%',
         gridRow: section.gridRow || 1,
-        gridColumn: section.gridColumn || 1
+        gridColumn: section.gridColumn || 1,
+        soloTexto: !!section.soloTexto
       });
       editSectionModal.open();
     } else {
@@ -210,7 +225,8 @@ export default function Habilidades({ data, onUpdate }) {
         rows: 1, 
         width: '100%',
         gridRow: freePosition.row,
-        gridColumn: freePosition.column
+        gridColumn: freePosition.column,
+        soloTexto: false
       });
       addSectionModal.open();
     }
@@ -252,7 +268,8 @@ export default function Habilidades({ data, onUpdate }) {
           rows: sectionForm.rows,
           width: sectionForm.width,
           gridRow: sectionForm.gridRow || updated[editingId].gridRow,
-          gridColumn: sectionForm.gridColumn || updated[editingId].gridColumn
+          gridColumn: sectionForm.gridColumn || updated[editingId].gridColumn,
+          soloTexto: !!sectionForm.soloTexto
         };
       } else {
         updated.push({ 
@@ -276,7 +293,8 @@ export default function Habilidades({ data, onUpdate }) {
           rows: sectionForm.rows,
           width: sectionForm.width,
           gridRow: sectionForm.gridRow || updated[editingId].gridRow,
-          gridColumn: sectionForm.gridColumn || updated[editingId].gridColumn
+          gridColumn: sectionForm.gridColumn || updated[editingId].gridColumn,
+          soloTexto: !!sectionForm.soloTexto
         };
       } else {
         updated.push({ ...sectionForm, skills: [] });
@@ -528,7 +546,8 @@ export default function Habilidades({ data, onUpdate }) {
   };
 
   const saveSkillForm = async () => {
-    if (!skillForm.name || (!skillForm.icon && !skillForm.iconFile)) 
+    const filaSoloTexto = !!sections[currentSection]?.soloTexto;
+    if (!skillForm.name || (!filaSoloTexto && !skillForm.icon && !skillForm.iconFile)) 
       return alert("Completa campos básicos");
     if (skillForm.hasCertificate && skillForm.certImages.length === 0 && skillForm.certFiles.length === 0) 
       return alert("Carga al menos un certificado");
@@ -626,6 +645,21 @@ export default function Habilidades({ data, onUpdate }) {
     setEditingId(null);
     addSkillModal.close();
     editSkillModal.close();
+  };
+
+  // Diseño en filas: orden de las secciones (campo `orden`; si falta, su posición en la grilla)
+  const posicionGrilla = (s) => (s.gridRow || 1) * 100 + (s.gridColumn || 1);
+  const seccionesOrdenadas = sections
+    .map((section, index) => ({ section, index }))
+    .sort((a, b) => (a.section.orden ?? posicionGrilla(a.section)) - (b.section.orden ?? posicionGrilla(b.section)));
+
+  const moverSeccion = async (posicion, direccion) => {
+    const destino = posicion + direccion;
+    if (destino < 0 || destino >= seccionesOrdenadas.length) return;
+    const orden = seccionesOrdenadas.map(o => o.index);
+    [orden[posicion], orden[destino]] = [orden[destino], orden[posicion]];
+    const updated = sections.map((s, i) => ({ ...s, orden: orden.indexOf(i) }));
+    await onUpdate({ sections: updated, header: data?.header || headerData });
   };
 
   // Habilidades del CV que todavía faltan (null si ya está todo aplicado)
@@ -784,6 +818,120 @@ export default function Habilidades({ data, onUpdate }) {
         {sections.length === 0 ? (
           <div className={`text-center py-20 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
             <p className="text-base">No hay secciones cargadas aún</p>
+          </div>
+        ) : DISENO_EN_FILAS ? (
+          // Diseño en filas: una tarjeta con una fila por categoría
+          <div className={`hab-tarjeta iconos-${ESTILO_ICONOS}`}>
+            {seccionesOrdenadas.map(({ section, index }, posicion) => {
+              const soloTexto = !!section.soloTexto;
+              return (
+                <div key={index} className="hab-fila">
+                  <div className="hab-etiqueta">
+                    <h3 className="hab-titulo">{lang === 'ES' ? section.title : (section.titleEN || section.title)}</h3>
+                    {isAdmin && (
+                      <div className="hab-admin">
+                        <button type="button" onClick={() => moverSeccion(posicion, -1)} disabled={posicion === 0} className="claro-btn-suave" title="Subir fila" aria-label="Subir fila">
+                          <IconChevronUp size={14} stroke={2} aria-hidden="true" />
+                        </button>
+                        <button type="button" onClick={() => moverSeccion(posicion, 1)} disabled={posicion === seccionesOrdenadas.length - 1} className="claro-btn-suave" title="Bajar fila" aria-label="Bajar fila">
+                          <IconChevronDown size={14} stroke={2} aria-hidden="true" />
+                        </button>
+                        <button type="button" onClick={() => openSkillModal(index)} className="claro-btn-mas claro-btn-suave" title="Agregar habilidad" aria-label="Agregar habilidad">
+                          <IconPlus size={14} stroke={2} aria-hidden="true" />
+                        </button>
+                        <button type="button" onClick={() => openSectionModal(index)} className="claro-btn-suave" title="Editar sección" aria-label="Editar sección">
+                          <IconPencil size={14} stroke={2} aria-hidden="true" />
+                        </button>
+                        <button type="button" onClick={() => handleDeleteSection(index)} className="claro-btn-borrar" title="Eliminar sección" aria-label="Eliminar sección">
+                          <IconTrash size={14} stroke={2} aria-hidden="true" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  <FilaCarrusel lang={lang}>
+                    {(section.skills || []).map((skill, skillIndex) => {
+                      const esDestino = isAdmin && draggedSkill?.sectionIndex === index
+                        && dropTarget.sectionIndex === index && dropTarget.skillIndex === skillIndex
+                        && draggedSkill.skillIndex !== skillIndex;
+                      const abrirCertificado = !isAdmin && skill.hasCertificate;
+                      const contenido = (
+                        <>
+                          {!soloTexto && (() => {
+                            const id = buscarTecnologia(skill.name)?.id;
+                            const linea = TIPO_ICONOS === 'linea' && ICONOS_LINEA[id];
+                            if (linea) {
+                              const [Icono, color] = linea;
+                              return (
+                                <Icono
+                                  size={17}
+                                  stroke={2}
+                                  className="hab-chip-icono linea"
+                                  style={color ? { '--marca': color } : undefined}
+                                  aria-hidden="true"
+                                />
+                              );
+                            }
+                            return (
+                              <img
+                                src={resolverTecnologia(skill.icon, skill.name).icono}
+                                alt=""
+                                className="hab-chip-icono"
+                                data-logo-oscuro={LOGOS_OSCUROS.includes(id) || undefined}
+                              />
+                            );
+                          })()}
+                          <span>{skill.name}</span>
+                          {skill.hasCertificate && (
+                            <IconRosetteDiscountCheck size={15} stroke={1.75} className="hab-chip-certificado" aria-label={lang === 'ES' ? 'con certificado' : 'certified'} />
+                          )}
+                        </>
+                      );
+                      return (
+                        <li
+                          key={`${skill.name}-${skillIndex}`}
+                          className={`hab-chip-item ${esDestino ? 'destino' : ''}`}
+                          draggable={isAdmin}
+                          onDragStart={(e) => onDragStartSkill(e, index, skillIndex)}
+                          onDragOver={(e) => onDragOverSkill(e, index, skillIndex)}
+                          onDrop={(e) => onDropSkill(e, index, skillIndex)}
+                          onDragEnd={() => { setDraggedSkill(null); setDropTarget({ sectionIndex: null, skillIndex: null }); }}
+                        >
+                          {isAdmin || abrirCertificado ? (
+                            <button
+                              type="button"
+                              className={`hab-chip ${soloTexto ? 'texto' : ''}`}
+                              title={isAdmin ? 'Editar habilidad (arrastrá para ordenar)' : (lang === 'ES' ? 'Ver certificado' : 'View certificate')}
+                              onClick={() => {
+                                if (isAdmin) return openSkillModal(index, skillIndex);
+                                setSelectedCert(skill);
+                                setCertViewIndex(0);
+                                certificateViewModal.open();
+                              }}
+                            >
+                              {contenido}
+                            </button>
+                          ) : (
+                            <span className={`hab-chip ${soloTexto ? 'texto' : ''}`}>{contenido}</span>
+                          )}
+                          {isAdmin && (
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteSkill(index, skillIndex)}
+                              className="hab-chip-quitar claro-btn-borrar"
+                              title="Eliminar habilidad"
+                              aria-label={`Eliminar ${skill.name}`}
+                            >
+                              <IconX size={11} stroke={2.5} aria-hidden="true" />
+                            </button>
+                          )}
+                        </li>
+                      );
+                    })}
+                  </FilaCarrusel>
+                </div>
+              );
+            })}
           </div>
         ) : (
           <div 
@@ -1036,6 +1184,18 @@ export default function Habilidades({ data, onUpdate }) {
       <Modal isOpen={addSectionModal.isOpen || editSectionModal.isOpen} onClose={() => { addSectionModal.close(); editSectionModal.close(); }} title={editingId !== null ? "Editar Sección" : "Nueva Sección"} hideClose>
         <div className="space-y-5">
           <Input label="Título" value={sectionForm.title} onChange={e => setSectionForm({...sectionForm, title: e.target.value})} />
+
+          <label className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer ${isDark ? 'border-slate-700 bg-slate-800/30' : 'border-slate-200 bg-slate-50'}`}>
+            <input
+              type="checkbox"
+              checked={!!sectionForm.soloTexto}
+              onChange={e => setSectionForm({ ...sectionForm, soloTexto: e.target.checked })}
+              className="w-4 h-4"
+            />
+            <span className={`text-xs font-bold uppercase ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+              Solo texto <span className="font-normal normal-case">(las habilidades de esta fila se muestran sin ícono, como Metodologías o Fundamentos)</span>
+            </span>
+          </label>
           
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -1382,5 +1542,56 @@ export default function Habilidades({ data, onUpdate }) {
         })()}
       </Modal>
     </SectionWrapper>
+  );
+}
+
+// Fila de habilidades en una sola línea. Si no entran todas, se desliza con las
+// flechas de la derecha (o con el dedo en el celular) y el borde del lado que sigue se desvanece.
+function FilaCarrusel({ lang, children }) {
+  const lista = useRef(null);
+  const [lados, setLados] = useState({ izq: false, der: false });
+  const t = (es, en) => (lang === 'ES' ? es : en);
+
+  const medir = useCallback(() => {
+    const el = lista.current;
+    if (!el) return;
+    const izq = el.scrollLeft > 2;
+    const der = el.scrollLeft < el.scrollWidth - el.clientWidth - 2;
+    setLados(prev => (prev.izq === izq && prev.der === der ? prev : { izq, der }));
+  }, []);
+
+  useEffect(() => {
+    const el = lista.current;
+    if (!el) return undefined;
+    medir();
+    const observador = new ResizeObserver(medir);
+    observador.observe(el);
+    Array.from(el.children).forEach(hijo => observador.observe(hijo));
+    return () => observador.disconnect();
+  }, [medir, children]);
+
+  const mover = (direccion) => {
+    const el = lista.current;
+    if (el) el.scrollBy({ left: direccion * el.clientWidth * 0.8, behavior: 'smooth' });
+  };
+
+  const desborda = lados.izq || lados.der;
+
+  return (
+    <div className={`hab-carrusel ${lados.izq ? 'mas-izq' : ''} ${lados.der ? 'mas-der' : ''}`}>
+      <ul className="hab-chips" ref={lista} onScroll={medir}>
+        {children}
+      </ul>
+      {desborda && (
+        <div className="hab-flechas">
+          <button type="button" className="hab-flecha" onClick={() => mover(-1)} disabled={!lados.izq} aria-label={t('Anteriores', 'Previous')}>
+            <IconChevronLeft size={16} stroke={2} aria-hidden="true" />
+          </button>
+          <button type="button" className="hab-flecha" onClick={() => mover(1)} disabled={!lados.der} aria-label={t('Siguientes', 'Next')}>
+            <IconChevronRight size={16} stroke={2} aria-hidden="true" />
+          </button>
+        </div>
+      )}
+    </div>
   );
 }

@@ -130,6 +130,9 @@ export const AppProvider = ({ children }) => {
   // 🎨 SINCRONIZAR TEMA CON DOM
   useEffect(() => {
     document.body.classList.toggle('light', !isDark);
+    // Ícono de la pestaña con el acento de cada tema (naranja / azul niebla)
+    const favicon = document.getElementById('favicon');
+    if (favicon) favicon.href = isDark ? '/favicon-oscuro.svg' : '/favicon-claro.svg';
   }, [isDark]);
 
   // 📊 LOG DE DESARROLLO (solo en dev)

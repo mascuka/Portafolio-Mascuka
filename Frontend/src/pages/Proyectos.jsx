@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { useApp } from '../context/useApp';
 import { useModal } from '../hooks/useModal';
 import { useCloudinary } from '../hooks/useCloudinary';
@@ -11,6 +12,30 @@ import SectionWrapper from '../components/SectionWrapper';
 import ProyectoDetalle from '../components/ProyectoDetalle';
 import { TECNOLOGIAS, iconoTecnologia, buscarTecnologia } from '../constants/tecnologias';
 import { calcularCambiosProyectos } from '../constants/cambiosProyectos';
+import {
+  IconArrowUpRight, IconArrowRight, IconArrowLeft, IconBrandGithub, IconPencil, IconTrash, IconStarFilled, IconCheck,
+  IconUser, IconBriefcase, IconUsers, IconSchool, IconChevronLeft, IconChevronRight, IconX, IconZoomIn,
+} from '@tabler/icons-react';
+
+// Diseño de la sección:
+//   'showcase'  un proyecto a la vez: datos sobre un panel de color e imágenes al costado
+//   'destacado' un proyecto grande arriba y el resto en carrusel
+//   'filas'     las filas con carrusel de siempre
+const DISENO = 'showcase';
+
+// Tipo y estado de cada proyecto (se eligen al editarlo)
+const TIPOS = {
+  personal: { ES: 'Personal', EN: 'Personal' },
+  cliente: { ES: 'Cliente', EN: 'Client' },
+  colaborativo: { ES: 'Colaborativo', EN: 'Collaborative' },
+  academico: { ES: 'Académico', EN: 'Academic' },
+};
+const ICONOS_TIPO = { personal: IconUser, cliente: IconBriefcase, colaborativo: IconUsers, academico: IconSchool };
+const ESTADOS = {
+  produccion: { ES: 'En producción', EN: 'Live' },
+  desarrollo: { ES: 'En desarrollo', EN: 'In progress' },
+};
+
 
 // Función para detectar si una URL es un video
 const isVideo = (url) => {
@@ -294,7 +319,15 @@ const cardsPerRow = Math.max(1, Math.min(4, Math.floor((anchoContenido + 16) / (
       row: project.row || 1,
       order: project.order !== null && project.order !== undefined ? project.order : null,
       technologies: project.technologies || [],
-      technologyNames: project.technologyNames || []
+      technologyNames: project.technologyNames || [],
+      tipo: project.tipo || '',
+      estado: project.estado || '',
+      destacado: !!project.destacado,
+      resumen: project.resumen || '',
+      intro: project.intro || '',
+      puntos: (project.puntos || []).join('\n'),
+      color: project.color || '',
+      capturaLaptop: project.capturaLaptop || ''
     });
     addModal.open();
   };
@@ -313,7 +346,15 @@ const cardsPerRow = Math.max(1, Math.min(4, Math.floor((anchoContenido + 16) / (
       row: defaultRow,
       order: getRandomUnusedOrderForRow(defaultRow),
       technologies: [],
-      technologyNames: []
+      technologyNames: [],
+      tipo: '',
+      estado: '',
+      destacado: false,
+      resumen: '',
+      intro: '',
+      puntos: '',
+      color: '',
+      capturaLaptop: ''
     });
     addModal.open();
   };
@@ -398,7 +439,12 @@ const cardsPerRow = Math.max(1, Math.min(4, Math.floor((anchoContenido + 16) / (
         }
       }
 
-      const [tEN, dEN] = await translateMultiple([formData.title, formData.description]);
+      const resumen = (formData.resumen || '').trim();
+      const intro = (formData.intro || '').trim();
+      const puntos = (formData.puntos || '').split('\n').map(l => l.trim()).filter(Boolean).slice(0, 4);
+      const traducidos = await translateMultiple([formData.title, formData.description, resumen, intro, ...puntos]);
+      const [tEN, dEN, rEN, iEN] = traducidos;
+      const puntosEN = puntos.map((punto, i) => traducidos[4 + i] || punto);
       const finalOrder = formData.order !== null && formData.order !== undefined 
         ? parseInt(formData.order)
         : getRandomUnusedOrderForRow(formData.row);
@@ -417,7 +463,18 @@ const cardsPerRow = Math.max(1, Math.min(4, Math.floor((anchoContenido + 16) / (
         row: formData.row,
         order: finalOrder,
         technologies: formData.technologies,
-        technologyNames: formData.technologyNames
+        technologyNames: formData.technologyNames,
+        tipo: formData.tipo || '',
+        estado: formData.estado || '',
+        destacado: !!formData.destacado,
+        resumen,
+        resumenEN: resumen ? (rEN || resumen) : '',
+        intro,
+        introEN: intro ? (iEN || intro) : '',
+        puntos,
+        puntosEN,
+        color: formData.color || '',
+        capturaLaptop: imageUrls.includes(formData.capturaLaptop) ? formData.capturaLaptop : ''
       };
 
       console.log('💾 Datos del proyecto a guardar:', projectData);
@@ -436,6 +493,12 @@ const cardsPerRow = Math.max(1, Math.min(4, Math.floor((anchoContenido + 16) / (
         }];
       }
 
+      // Solo puede haber un proyecto destacado
+      if (projectData.destacado) {
+        const idGuardado = editingId || updatedProjects[updatedProjects.length - 1].id;
+        updatedProjects = updatedProjects.map(p => (p.id === idGuardado || !p.destacado ? p : { ...p, destacado: false }));
+      }
+
       await onUpdate({ list: updatedProjects, header: headerData });
       setUploadProgress({ current: 0, total: 0, message: '' });
       addModal.close();
@@ -447,14 +510,15 @@ const cardsPerRow = Math.max(1, Math.min(4, Math.floor((anchoContenido + 16) / (
   };
 
   // Datos pendientes de los proyectos (null si ya está todo aplicado)
-  const cambiosProyectos = isAdmin ? calcularCambiosProyectos(projectsList) : null;
+  const cambiosProyectos = isAdmin ? calcularCambiosProyectos(projectsList, headerData) : null;
 
   const aplicarCambiosProyectos = async () => {
     if (!cambiosProyectos) return;
     const ok = window.confirm(`Se van a aplicar estos cambios:\n\n• ${cambiosProyectos.resumen.join('\n• ')}`);
     if (!ok) return;
     try {
-      await onUpdate({ list: cambiosProyectos.proyectos, header: headerData });
+      await onUpdate({ list: cambiosProyectos.proyectos, header: cambiosProyectos.header });
+      setHeaderData(cambiosProyectos.header);
     } catch {
       alert('No se pudieron aplicar los cambios');
     }
@@ -554,6 +618,36 @@ const cardsPerRow = Math.max(1, Math.min(4, Math.floor((anchoContenido + 16) / (
 
   const rowsData = getProjectsByRow();
 
+  const accionesAdmin = isAdmin && (
+    <div className="flex items-center gap-2">
+      {cambiosProyectos && (
+        <button
+          onClick={aplicarCambiosProyectos}
+          title={cambiosProyectos.resumen.join('\n')}
+          className="px-3 sm:px-4 py-2 rounded-lg text-[8px] sm:text-[9px] font-bold uppercase tracking-wider transition-all claro-btn-suave bg-acento/10 text-acento"
+        >
+          Aplicar cambios
+        </button>
+      )}
+      <button
+        onClick={handleAdd}
+        className="px-3 sm:px-4 py-2 rounded-lg text-[8px] sm:text-[9px] font-bold uppercase tracking-wider transition-all claro-btn-oscuro bg-acento text-white hover:bg-acento-hover opacity-60 hover:opacity-100"
+      >
+        + Nuevo
+      </button>
+      <button 
+        onClick={editHeaderModal.open} 
+        className={`p-2 rounded-lg transition-all opacity-60 hover:opacity-100 claro-btn-suave ${
+          isDark ? 'bg-white/5 hover:bg-white/10 text-white/60' : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
+        }`}
+      >
+        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+        </svg>
+      </button>
+    </div>
+  );
+
   return (
     <SectionWrapper id="Proyectos" banda>
       <div className="claro-contenedor claro-contenedor-proyectos relative w-full max-w-[1800px] mx-auto px-4 sm:px-6 md:px-12 lg:px-20 z-10">
@@ -569,7 +663,7 @@ const cardsPerRow = Math.max(1, Math.min(4, Math.floor((anchoContenido + 16) / (
               {lang === 'ES' ? headerData.title : (headerData.titleEN || headerData.title)}
             </h1>
             <div className={`h-[2px] w-32 sm:w-40 bg-gradient-to-r from-transparent via-acento to-transparent mx-auto claro-regla`} />
-            
+          
             {/* Descripción opcional */}
             {(headerData.description || headerData.descriptionEN) && (
               <p className={`claro-seccion-desc mt-4 sm:mt-6 text-sm sm:text-base md:text-lg max-w-5xl mx-auto transition-all duration-700 ${
@@ -579,42 +673,31 @@ const cardsPerRow = Math.max(1, Math.min(4, Math.floor((anchoContenido + 16) / (
               </p>
             )}
           </div>
-          
-          {isAdmin && (
-            <div className="absolute right-0 flex items-center gap-2">
-              {cambiosProyectos && (
-                <button
-                  onClick={aplicarCambiosProyectos}
-                  title={cambiosProyectos.resumen.join('\n')}
-                  className="px-3 sm:px-4 py-2 rounded-lg text-[8px] sm:text-[9px] font-bold uppercase tracking-wider transition-all claro-btn-suave bg-acento/10 text-acento"
-                >
-                  Aplicar cambios
-                </button>
-              )}
-              <button
-                onClick={handleAdd}
-                className="px-3 sm:px-4 py-2 rounded-lg text-[8px] sm:text-[9px] font-bold uppercase tracking-wider transition-all claro-btn-oscuro bg-acento text-white hover:bg-acento-hover opacity-60 hover:opacity-100"
-              >
-                + Nuevo
-              </button>
-              <button 
-                onClick={editHeaderModal.open} 
-                className={`p-2 rounded-lg transition-all opacity-60 hover:opacity-100 claro-btn-suave ${
-                  isDark ? 'bg-white/5 hover:bg-white/10 text-white/60' : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
-                }`}
-              >
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                </svg>
-              </button>
-            </div>
-          )}
+        
+          {isAdmin && <div className="absolute right-0">{accionesAdmin}</div>}
         </div>
 
         {projectsList.length === 0 ? (
           <div className={`text-center py-20 sm:py-32 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
             <p className="text-base sm:text-lg">No hay proyectos cargados aún</p>
           </div>
+        ) : DISENO === 'showcase' ? (
+          <ProyectosShowcase
+            proyectos={Object.keys(rowsData).sort((a, b) => parseInt(a) - parseInt(b)).flatMap(fila => rowsData[fila])}
+            lang={lang}
+            isAdmin={isAdmin}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+          />
+        ) : DISENO === 'destacado' ? (
+          <ProyectosDestacado
+            proyectos={Object.keys(rowsData).sort((a, b) => parseInt(a) - parseInt(b)).flatMap(fila => rowsData[fila])}
+            lang={lang}
+            isAdmin={isAdmin}
+            onOpen={(project) => openImageViewer(project, 0)}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+          />
         ) : (
           <div className="space-y-16">
             {Object.keys(rowsData).sort((a, b) => parseInt(a) - parseInt(b)).map(rowIndex => {
@@ -714,6 +797,29 @@ const cardsPerRow = Math.max(1, Math.min(4, Math.floor((anchoContenido + 16) / (
             onChange={(e) => setFormData({...formData, description: e.target.value})}
             rows={8}
             helper="Se traducirá al inglés. En la tarjeta se ve el comienzo y al abrir el proyecto, completa. Podés separar párrafos con una línea en blanco y usar **negrita** (por ejemplo: **Mi rol:** …)."
+          />
+          <Input
+            label="Resumen corto (opcional)"
+            value={formData.resumen || ''}
+            onChange={(e) => setFormData({ ...formData, resumen: e.target.value })}
+            maxLength={70}
+            placeholder="Ej.: Reclamos y pedidos ciudadanos para Córdoba."
+            helper="Una frase de hasta 70 caracteres para la tarjeta, así entra completa en dos renglones. Si lo dejás vacío, se muestra el comienzo de la descripción. Las primeras 3 tecnologías de la lista son las que aparecen en la tarjeta."
+          />
+          <Textarea
+            label="Introducción si es el destacado (opcional)"
+            value={formData.intro || ''}
+            onChange={(e) => setFormData({ ...formData, intro: e.target.value })}
+            rows={2}
+            helper="Una o dos oraciones que se ven en grande cuando el proyecto es el destacado. Si la dejás vacía, se usa el comienzo de la descripción."
+          />
+          <Textarea
+            label="Puntos clave si es el destacado (opcional)"
+            value={formData.puntos || ''}
+            onChange={(e) => setFormData({ ...formData, puntos: e.target.value })}
+            rows={3}
+            placeholder={'Solicitudes de retiro de poda\nReclamos por alumbrado, calles y residuos\nSeguimiento de cada gestión en línea'}
+            helper="Uno por renglón, hasta 4. Se muestran con un tilde debajo de la introducción. Se traducen al inglés."
           />
           <div className="space-y-3">
             <label className="text-[10px] font-black uppercase tracking-widest text-acento">
@@ -834,6 +940,78 @@ const cardsPerRow = Math.max(1, Math.min(4, Math.floor((anchoContenido + 16) / (
 
           <Input label="URL del Demo" value={formData.demo} onChange={(e) => setFormData({...formData, demo: e.target.value})} placeholder="https://..." />
           <Input label="URL del código (opcional)" value={formData.repo} onChange={(e) => setFormData({...formData, repo: e.target.value})} placeholder="https://github.com/..." helper='Si la cargás, aparece el botón "Ver código" al abrir el proyecto' />
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="text-[10px] font-black uppercase tracking-widest text-acento block mb-2">Tipo</label>
+              <select value={formData.tipo || ''} onChange={(e) => setFormData({ ...formData, tipo: e.target.value })} className={`w-full px-4 py-2.5 rounded-xl border-2 transition-all text-sm ${
+                  isDark
+                    ? 'bg-slate-800/50 border-slate-700 text-white focus:border-acento'
+                    : 'bg-white border-slate-200 text-slate-900 focus:border-acento'
+                }`}>
+                <option value="">Sin tipo</option>
+                {Object.entries(TIPOS).map(([id, t]) => <option key={id} value={id}>{t.ES}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="text-[10px] font-black uppercase tracking-widest text-acento block mb-2">Estado</label>
+              <select value={formData.estado || ''} onChange={(e) => setFormData({ ...formData, estado: e.target.value })} className={`w-full px-4 py-2.5 rounded-xl border-2 transition-all text-sm ${
+                  isDark
+                    ? 'bg-slate-800/50 border-slate-700 text-white focus:border-acento'
+                    : 'bg-white border-slate-200 text-slate-900 focus:border-acento'
+                }`}>
+                <option value="">Sin estado</option>
+                {Object.entries(ESTADOS).map(([id, t]) => <option key={id} value={id}>{t.ES}</option>)}
+              </select>
+            </div>
+          </div>
+
+          <label className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer ${isDark ? 'border-slate-700 bg-slate-800/30' : 'border-slate-200 bg-slate-50'}`}>
+            <input type="checkbox" checked={!!formData.destacado} onChange={(e) => setFormData({ ...formData, destacado: e.target.checked })} className="w-4 h-4" />
+            <span className={`text-xs font-bold uppercase ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+              Proyecto destacado <span className="font-normal normal-case">(se muestra grande, arriba de todo; solo puede haber uno)</span>
+            </span>
+          </label>
+
+          {/* Escenario del showcase: color de fondo y con qué imagen arranca la laptop */}
+          {(() => {
+            const subidas = (formData.images || []).filter(url => url && /^https?:/.test(url) && !isVideo(url));
+            const claseSelect = `w-full px-4 py-2.5 rounded-xl border-2 transition-all text-sm ${
+              isDark ? 'bg-slate-800/50 border-slate-700 text-white focus:border-acento' : 'bg-white border-slate-200 text-slate-900 focus:border-acento'
+            }`;
+            const etiqueta = 'text-[10px] font-black uppercase tracking-widest text-acento block mb-2';
+            return (
+              <div className="space-y-4">
+                <div>
+                  <label className={etiqueta}>Imagen con la que arranca la laptop</label>
+                  <select value={formData.capturaLaptop || ''} onChange={(e) => setFormData({ ...formData, capturaLaptop: e.target.value })} className={claseSelect}>
+                    <option value="">La primera imagen</option>
+                    {subidas.map(url => <option key={url} value={url}>Imagen {formData.images.indexOf(url) + 1}</option>)}
+                  </select>
+                </div>
+                <div className="flex items-center gap-3">
+                  <label className={`${etiqueta} mb-0`}>Color del escenario</label>
+                  <input
+                    type="color"
+                    value={formData.color || '#D97757'}
+                    onChange={(e) => setFormData({ ...formData, color: e.target.value })}
+                    className="w-10 h-8 rounded cursor-pointer bg-transparent"
+                    aria-label="Color del escenario"
+                  />
+                  {formData.color ? (
+                    <button type="button" onClick={() => setFormData({ ...formData, color: '' })} className="text-xs underline opacity-70 hover:opacity-100">
+                      Usar el automático
+                    </button>
+                  ) : (
+                    <span className="text-xs opacity-60">Automático</span>
+                  )}
+                </div>
+                <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                  En la laptop se pasan todas las imágenes del proyecto con las flechas. Las recién agregadas aparecen en esta lista después de guardar.
+                </p>
+              </div>
+            );
+          })()}
           
           {/* Tecnologías Utilizadas */}
           <div className="space-y-3">
@@ -1553,6 +1731,492 @@ function ProjectCard({ project, isDark, lang, isAdmin, onEdit, onDelete, onImage
             )}
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+// ============================================
+// DISEÑO CON PROYECTO DESTACADO
+// ============================================
+
+const textoDe = (project, lang, campo) => (lang === 'ES' ? project[campo] : (project[`${campo}EN`] || project[campo])) || '';
+const portadaDe = (project) => (project.images && project.images[0]) || project.image;
+
+function Portada({ project }) {
+  const media = portadaDe(project);
+  if (!media) return null;
+  return isVideo(media)
+    ? <video src={media} muted playsInline preload="metadata" />
+    : <img src={media} alt="" loading="lazy" />;
+}
+
+// "Vite 7" → "Vite": en las etiquetas los nombres van sin versión
+const sinVersion = (nombre) => nombre.replace(/\s+v?\d+(\.\d+)*$/i, '');
+
+// Las primeras tecnologías de la lista (el orden se elige al editar el proyecto)
+function Etiquetas({ project, maximo }) {
+  const nombres = (project.technologyNames || []).filter(Boolean).slice(0, maximo);
+  if (!nombres.length) return null;
+  return (
+    <ul className="pry-etiquetas">
+      {nombres.map((n, i) => <li key={`${n}-${i}`} className="pry-etiqueta">{sinVersion(n)}</li>)}
+    </ul>
+  );
+}
+
+function BotonesAdmin({ project, onEdit, onDelete }) {
+  return (
+    <div className="pry-admin" onClick={(e) => e.stopPropagation()}>
+      <button type="button" onClick={() => onEdit(project)} className="claro-btn-suave" title="Editar proyecto" aria-label="Editar proyecto">
+        <IconPencil size={15} stroke={2} aria-hidden="true" />
+      </button>
+      <button type="button" onClick={() => onDelete(project.id)} className="claro-btn-borrar" title="Eliminar proyecto" aria-label="Eliminar proyecto">
+        <IconTrash size={15} stroke={2} aria-hidden="true" />
+      </button>
+    </div>
+  );
+}
+
+// Abre el detalle con Enter o espacio (las tarjetas son clickeables enteras)
+const teclaAbrir = (abrir) => (e) => {
+  if (e.target !== e.currentTarget) return;
+  if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); abrir(); }
+};
+
+function ProyectosDestacado({ proyectos, lang, isAdmin, onOpen, onEdit, onDelete }) {
+  const destacado = proyectos.find(p => p.destacado) || proyectos[0];
+  const resto = proyectos.filter(p => p !== destacado);
+  const t = (es, en) => (lang === 'ES' ? es : en);
+
+  if (!destacado) return null;
+
+  const intro = textoDe(destacado, lang, 'intro');
+  const puntos = (lang === 'ES' ? destacado.puntos : (destacado.puntosEN || destacado.puntos)) || [];
+  const TipoIcono = ICONOS_TIPO[destacado.tipo];
+
+  return (
+    <div className="pry-lista">
+      <article
+        className="pry-destacado"
+        role="button"
+        tabIndex={0}
+        aria-label={`${t('Ver detalles de', 'View details of')} ${textoDe(destacado, lang, 'title')}`}
+        onClick={() => onOpen(destacado)}
+        onKeyDown={teclaAbrir(() => onOpen(destacado))}
+      >
+        <div className="pry-destacado-media"><Portada project={destacado} /></div>
+        <div className="pry-destacado-cuerpo">
+          <div className="pry-marcas">
+            <span className="pry-insignia"><IconStarFilled size={11} aria-hidden="true" />{t('Destacado', 'Featured')}</span>
+            {ESTADOS[destacado.estado] && (
+              <span className={`pry-pildora estado ${destacado.estado}`}>{ESTADOS[destacado.estado][lang]}</span>
+            )}
+            {TIPOS[destacado.tipo] && (
+              <span className="pry-pildora">
+                {TipoIcono && <TipoIcono size={13} stroke={1.75} aria-hidden="true" />}
+                {TIPOS[destacado.tipo][lang]}
+              </span>
+            )}
+          </div>
+          <h3 className="pry-destacado-titulo">{textoDe(destacado, lang, 'title')}</h3>
+          <p className={`pry-destacado-desc ${intro ? 'completa' : ''}`}>{intro || textoDe(destacado, lang, 'description')}</p>
+          {puntos.length > 0 ? (
+            <ul className="pry-puntos">
+              {puntos.map((punto, i) => (
+                <li key={i}><IconCheck size={15} stroke={2.25} aria-hidden="true" />{punto}</li>
+              ))}
+            </ul>
+          ) : (
+            <Etiquetas project={destacado} maximo={5} />
+          )}
+          <div className="pry-botones">
+            {destacado.demo && (
+              <a href={destacado.demo} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="pry-boton principal">
+                {t('Ver demo', 'View demo')} <IconArrowUpRight size={15} stroke={2} aria-hidden="true" />
+              </a>
+            )}
+            <button type="button" onClick={(e) => { e.stopPropagation(); onOpen(destacado); }} className="pry-boton secundario">
+              {t('Cómo lo hicimos', 'How we built it')} <IconArrowRight size={15} stroke={2} aria-hidden="true" />
+            </button>
+            {destacado.repo && (
+              <a href={destacado.repo} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="pry-boton icono" title={t('Ver código', 'View code')} aria-label={t('Ver código', 'View code')}>
+                <IconBrandGithub size={17} stroke={1.75} aria-hidden="true" />
+              </a>
+            )}
+            {isAdmin && <BotonesAdmin project={destacado} onEdit={onEdit} onDelete={onDelete} />}
+          </div>
+        </div>
+      </article>
+
+      {resto.length > 0 && (
+        <CarruselProyectos cantidad={resto.length} lang={lang}>
+          {resto.map(project => {
+            const Icono = ICONOS_TIPO[project.tipo];
+            return (
+              <article
+                key={project.id}
+                className="pry-tarjeta"
+                role="button"
+                tabIndex={0}
+                aria-label={`${t('Ver detalles de', 'View details of')} ${textoDe(project, lang, 'title')}`}
+                onClick={() => onOpen(project)}
+                onKeyDown={teclaAbrir(() => onOpen(project))}
+              >
+                <div className="pry-miniatura"><Portada project={project} /></div>
+                <div className="pry-cuerpo">
+                  {TIPOS[project.tipo] && (
+                    <span className="pry-tipo">
+                      {Icono && <Icono size={13} stroke={2} aria-hidden="true" />}
+                      {TIPOS[project.tipo][lang]}
+                    </span>
+                  )}
+                  <h3 className="pry-titulo">{textoDe(project, lang, 'title')}</h3>
+                  {textoDe(project, lang, 'resumen')
+                    ? <p className="pry-desc completa">{textoDe(project, lang, 'resumen')}</p>
+                    : <p className="pry-desc">{textoDe(project, lang, 'description')}</p>}
+                  <Etiquetas project={project} maximo={3} />
+                  <div className="pry-pie">
+                    {project.demo && (
+                      <a href={project.demo} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="pry-enlace">
+                        {t('Ver demo', 'View demo')} <IconArrowUpRight size={14} stroke={2} aria-hidden="true" />
+                      </a>
+                    )}
+                    {project.repo && (
+                      <a href={project.repo} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="pry-enlace suave">
+                        <IconBrandGithub size={14} stroke={1.75} aria-hidden="true" /> {t('Código', 'Code')}
+                      </a>
+                    )}
+                    <div className="pry-pie-derecha">
+                      {isAdmin && <BotonesAdmin project={project} onEdit={onEdit} onDelete={onDelete} />}
+                      <span className="pry-abrir" aria-hidden="true"><IconArrowRight size={15} stroke={2} /></span>
+                    </div>
+                  </div>
+                </div>
+              </article>
+            );
+          })}
+        </CarruselProyectos>
+      )}
+    </div>
+  );
+}
+
+// Carrusel horizontal: 2 tarjetas grandes por vista y 1 en el celular (se define
+// en el CSS con --por-vista). Si entran todas, no muestra flechas ni puntos; si
+// hay más, se desliza con las flechas, los puntos o arrastrando con el dedo.
+const ESPACIO_CARRUSEL = 16;
+
+function CarruselProyectos({ cantidad, lang, children }) {
+  const pista = useRef(null);
+  const [estado, setEstado] = useState({ pagina: 0, paginas: 1, inicio: true, fin: true });
+  const t = (es, en) => (lang === 'ES' ? es : en);
+
+  const medir = useCallback(() => {
+    const el = pista.current;
+    if (!el) return;
+    const porVista = parseInt(getComputedStyle(el).getPropertyValue('--por-vista'), 10) || 1;
+    const paginas = Math.max(1, Math.ceil(cantidad / porVista));
+    const maximo = el.scrollWidth - el.clientWidth;
+    const fin = el.scrollLeft >= maximo - 2;
+    const pagina = fin ? paginas - 1 : Math.round(el.scrollLeft / (el.clientWidth + ESPACIO_CARRUSEL));
+    const nuevo = { pagina, paginas, inicio: el.scrollLeft <= 2, fin };
+    setEstado(prev => (Object.keys(nuevo).every(k => prev[k] === nuevo[k]) ? prev : nuevo));
+  }, [cantidad]);
+
+  useEffect(() => {
+    medir();
+    window.addEventListener('resize', medir);
+    return () => window.removeEventListener('resize', medir);
+  }, [medir]);
+
+  const irA = (pagina) => {
+    const el = pista.current;
+    if (el) el.scrollTo({ left: pagina * (el.clientWidth + ESPACIO_CARRUSEL), behavior: 'smooth' });
+  };
+  const mover = (direccion) => {
+    const el = pista.current;
+    if (el) el.scrollBy({ left: direccion * (el.clientWidth + ESPACIO_CARRUSEL), behavior: 'smooth' });
+  };
+
+  const hayVarias = estado.paginas > 1;
+
+  return (
+    <div className="pry-carrusel">
+      {hayVarias && (
+        <div className="pry-carrusel-flechas">
+          <button type="button" onClick={() => mover(-1)} disabled={estado.inicio} aria-label={t('Anteriores', 'Previous')}>
+            <IconChevronLeft size={18} stroke={2} aria-hidden="true" />
+          </button>
+          <button type="button" onClick={() => mover(1)} disabled={estado.fin} aria-label={t('Siguientes', 'Next')}>
+            <IconChevronRight size={18} stroke={2} aria-hidden="true" />
+          </button>
+        </div>
+      )}
+      <div className="pry-carrusel-pista" ref={pista} onScroll={medir}>
+        {children}
+      </div>
+      {hayVarias && (
+        <div className="pry-carrusel-puntos">
+          {Array.from({ length: estado.paginas }, (_, i) => (
+            <button
+              key={i}
+              type="button"
+              onClick={() => irA(i)}
+              className={i === estado.pagina ? 'activo' : ''}
+              aria-label={`${t('Página', 'Page')} ${i + 1}`}
+              aria-current={i === estado.pagina || undefined}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ============================================
+// SHOWCASE: un proyecto a la vez en un panel de su color, con los datos a la
+// izquierda y sus imágenes al costado. Todo está a la vista: no hace falta abrir
+// el proyecto.
+// ============================================
+
+// Color del panel si el proyecto no tiene uno elegido (se repiten en orden; en
+// el CSS se oscurece para que el texto blanco se lea bien)
+const COLORES_ESCENARIO = ['#D97757', '#6F9BD1', '#D98BA6', '#6FAF8E', '#A68BD6', '#D9A441'];
+
+const mediosDe = (project) => {
+  const lista = (project.images || []).filter(Boolean);
+  return lista.length ? lista : (project.image ? [project.image] : []);
+};
+
+// Imagen con la que arranca la pantalla: la elegida o la primera
+const inicioDe = (project, medios) => Math.max(0, medios.indexOf(project.capturaLaptop));
+
+// Cloudinary entrega la imagen ya achicada al tamaño en que se ve, con buena
+// calidad y un poco de enfoque: el navegador no la reduce y el texto de las
+// capturas se ve nítido. Las de otros sitios quedan como están.
+const ANCHOS_PANTALLA = [700, 1000, 1400, 1900];
+const ANCHOS_MINIATURA = [180, 300, 450];
+const cloudinary = (url, ancho) => (
+  /res\.cloudinary\.com\/.+\/image\/upload\//.test(url)
+    ? url.replace('/image/upload/', `/image/upload/c_limit,w_${ancho},q_auto:best,f_auto,e_sharpen:70/`)
+    : url
+);
+
+function ImagenNitida({ url, anchos, sizes }) {
+  if (!/res\.cloudinary\.com/.test(url)) return <img src={url} alt="" decoding="async" />;
+  return (
+    <img
+      src={cloudinary(url, anchos[1])}
+      srcSet={anchos.map(a => `${cloudinary(url, a)} ${a}w`).join(', ')}
+      sizes={sizes}
+      alt=""
+      decoding="async"
+    />
+  );
+}
+
+// En el costado la imagen se ve entera; el espacio que sobra se rellena con
+// la misma imagen difuminada (una versión chiquita, liviana)
+function Medio({ url, controles, nitida }) {
+  if (isVideo(url)) return <video src={url} muted playsInline loop autoPlay controls={controles} />;
+  if (!nitida) return <img src={url} alt="" />;
+  return (
+    <>
+      <img className="scx-difuso" src={cloudinary(url, 240)} alt="" aria-hidden="true" />
+      <ImagenNitida url={url} anchos={ANCHOS_PANTALLA} sizes="(max-width: 1024px) 100vw, 720px" />
+    </>
+  );
+}
+
+// Imagen ampliada a pantalla completa, con flechas, teclado y Esc para cerrar
+function Ampliada({ medios, indice, onCambiar, onCerrar, lang }) {
+  const t = (es, en) => (lang === 'ES' ? es : en);
+  const varias = medios.length > 1;
+  const mover = useCallback((paso) => onCambiar((indice + paso + medios.length) % medios.length), [indice, medios.length, onCambiar]);
+
+  useEffect(() => {
+    const tecla = (e) => {
+      if (e.key === 'Escape') onCerrar();
+      else if (e.key === 'ArrowRight' && varias) mover(1);
+      else if (e.key === 'ArrowLeft' && varias) mover(-1);
+    };
+    const anterior = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    document.addEventListener('keydown', tecla);
+    return () => {
+      document.body.style.overflow = anterior;
+      document.removeEventListener('keydown', tecla);
+    };
+  }, [mover, onCerrar, varias]);
+
+  return createPortal(
+    <div className="scx-ampliada" role="dialog" aria-modal="true" aria-label={t('Imagen ampliada', 'Enlarged image')} onClick={onCerrar}>
+      <button type="button" className="scx-ampliada-cerrar" onClick={onCerrar} aria-label={t('Cerrar', 'Close')}>
+        <IconX size={22} stroke={2} aria-hidden="true" />
+      </button>
+      <div className="scx-ampliada-medio" key={medios[indice]} onClick={(e) => e.stopPropagation()}>
+        <Medio url={medios[indice]} controles />
+      </div>
+      {varias && (
+        <>
+          <button type="button" className="scx-ampliada-flecha izq" onClick={(e) => { e.stopPropagation(); mover(-1); }} aria-label={t('Imagen anterior', 'Previous image')}>
+            <IconChevronLeft size={26} stroke={2} aria-hidden="true" />
+          </button>
+          <button type="button" className="scx-ampliada-flecha der" onClick={(e) => { e.stopPropagation(); mover(1); }} aria-label={t('Imagen siguiente', 'Next image')}>
+            <IconChevronRight size={26} stroke={2} aria-hidden="true" />
+          </button>
+          <p className="scx-ampliada-contador">{indice + 1} / {medios.length}</p>
+        </>
+      )}
+    </div>,
+    document.body
+  );
+}
+
+// Imágenes del proyecto: flechas a los costados y clic para ampliar
+function Galeria({ project, lang }) {
+  const medios = mediosDe(project);
+  const [indice, setIndice] = useState(() => inicioDe(project, medios));
+  const [ampliada, setAmpliada] = useState(false);
+  const t = (es, en) => (lang === 'ES' ? es : en);
+  const varias = medios.length > 1;
+  const mover = (paso) => setIndice(i => (i + paso + medios.length) % medios.length);
+
+  // Precarga la anterior y la siguiente (en el mismo tamaño) para que el cambio sea instantáneo
+  const claveMedios = medios.join('|');
+  useEffect(() => {
+    const lista = claveMedios.split('|');
+    [indice + 1, indice - 1].forEach(i => {
+      const url = lista[(i + lista.length) % lista.length];
+      if (!url || isVideo(url)) return;
+      const img = new Image();
+      img.sizes = '(max-width: 1024px) 100vw, 720px';
+      img.srcset = ANCHOS_PANTALLA.map(a => `${cloudinary(url, a)} ${a}w`).join(', ');
+      img.src = cloudinary(url, ANCHOS_PANTALLA[1]);
+    });
+  }, [indice, claveMedios]);
+
+  if (!medios.length) return null;
+
+  return (
+    <div className="scx-galeria">
+      <div className="scx-galeria-marco">
+        <button
+          type="button"
+          className="scx-galeria-imagen"
+          key={medios[indice]}
+          onClick={() => setAmpliada(true)}
+          aria-label={t('Ampliar imagen', 'Enlarge image')}
+          title={t('Ampliar', 'Enlarge')}
+        >
+          <Medio url={medios[indice]} nitida />
+          <span className="scx-lupa" aria-hidden="true"><IconZoomIn size={16} stroke={2} /></span>
+        </button>
+        {varias && <span className="scx-galeria-contador">{indice + 1} / {medios.length}</span>}
+      </div>
+      {varias && (
+        <>
+          <button type="button" className="scx-galeria-flecha izq" onClick={() => mover(-1)} aria-label={t('Imagen anterior', 'Previous image')}>
+            <IconChevronLeft size={20} stroke={2} aria-hidden="true" />
+          </button>
+          <button type="button" className="scx-galeria-flecha der" onClick={() => mover(1)} aria-label={t('Imagen siguiente', 'Next image')}>
+            <IconChevronRight size={20} stroke={2} aria-hidden="true" />
+          </button>
+        </>
+      )}
+      {ampliada && (
+        <Ampliada medios={medios} indice={indice} onCambiar={setIndice} onCerrar={() => setAmpliada(false)} lang={lang} />
+      )}
+    </div>
+  );
+}
+
+function ProyectosShowcase({ proyectos, lang, isAdmin, onEdit, onDelete }) {
+  const [activoId, setActivoId] = useState(null);
+  const tira = useRef(null);
+  const t = (es, en) => (lang === 'ES' ? es : en);
+
+  const posicion = Math.max(0, proyectos.findIndex(p => p.id === activoId));
+  const activo = proyectos[posicion];
+
+  // La miniatura activa siempre a la vista dentro de la tira (sin mover la página)
+  useEffect(() => {
+    const el = tira.current;
+    const mini = el?.children[posicion];
+    if (!el || !mini) return;
+    const izq = mini.offsetLeft - el.offsetLeft;
+    if (izq < el.scrollLeft || izq + mini.offsetWidth > el.scrollLeft + el.clientWidth) {
+      el.scrollTo({ left: izq - (el.clientWidth - mini.offsetWidth) / 2, behavior: 'smooth' });
+    }
+  }, [posicion]);
+
+  if (!activo) return null;
+
+  const ir = (paso) => setActivoId(proyectos[(posicion + paso + proyectos.length) % proyectos.length].id);
+  const color = activo.color || COLORES_ESCENARIO[posicion % COLORES_ESCENARIO.length];
+  const antetitulo = [TIPOS[activo.tipo]?.[lang], ESTADOS[activo.estado]?.[lang]].filter(Boolean).join(' · ');
+  const dosCifras = (n) => String(n).padStart(2, '0');
+
+  return (
+    <div className="scx" style={{ '--scx-color': color }}>
+      <article className="scx-escenario">
+        <div className="scx-info" key={`info-${activo.id}`}>
+          <div className="scx-info-arriba">
+            <span className="scx-numero">{dosCifras(posicion + 1)} / {dosCifras(proyectos.length)}</span>
+            {antetitulo && <span className="scx-meta">{antetitulo}</span>}
+          </div>
+          <div className="scx-info-abajo">
+            <h3 className="scx-titulo">{textoDe(activo, lang, 'title')}</h3>
+            <p className="scx-desc">{textoDe(activo, lang, 'description')}</p>
+            <Etiquetas project={activo} maximo={5} />
+            <div className="pry-botones">
+              {activo.demo && (
+                <a href={activo.demo} target="_blank" rel="noopener noreferrer" className="pry-boton scx-boton-web">
+                  {t('Ir a la web', 'Visit website')} <IconArrowUpRight size={15} stroke={2} aria-hidden="true" />
+                </a>
+              )}
+              {activo.repo && (
+                <a href={activo.repo} target="_blank" rel="noopener noreferrer" className="pry-boton scx-boton-codigo">
+                  <IconBrandGithub size={16} stroke={1.75} aria-hidden="true" /> {t('Código', 'Code')}
+                </a>
+              )}
+              {isAdmin && <BotonesAdmin project={activo} onEdit={onEdit} onDelete={onDelete} />}
+            </div>
+          </div>
+        </div>
+
+        <div className="scx-lado" key={`lado-${activo.id}`}>
+          <Galeria project={activo} lang={lang} />
+        </div>
+      </article>
+
+      <div className="scx-navegacion">
+        <div className="scx-tira" ref={tira}>
+          {proyectos.map((p, i) => (
+            <button
+              key={p.id}
+              type="button"
+              onClick={() => setActivoId(p.id)}
+              className={`scx-mini ${i === posicion ? 'activa' : ''}`}
+              aria-label={textoDe(p, lang, 'title')}
+              aria-current={i === posicion || undefined}
+            >
+              {isVideo(portadaDe(p) || '')
+                ? <Portada project={p} />
+                : portadaDe(p) && <ImagenNitida url={portadaDe(p)} anchos={ANCHOS_MINIATURA} sizes="150px" />}
+            </button>
+          ))}
+        </div>
+        {proyectos.length > 1 && (
+          <div className="scx-controles">
+            <button type="button" onClick={() => ir(-1)} className="scx-flecha" aria-label={t('Proyecto anterior', 'Previous project')}>
+              <IconArrowLeft size={18} stroke={2} aria-hidden="true" />
+            </button>
+            <button type="button" onClick={() => ir(1)} className="scx-flecha llena" aria-label={t('Proyecto siguiente', 'Next project')}>
+              <IconArrowRight size={18} stroke={2} aria-hidden="true" />
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

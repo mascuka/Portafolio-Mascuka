@@ -1,8 +1,9 @@
 /**
  * ÍCONOS DE TECNOLOGÍAS GUARDADOS EN EL PORTFOLIO
  * Los archivos viven en public/iconos/tecnologias/<id>.svg: los logos son de
- * Devicon (licencia MIT), el de Cloudinary de Simple Icons (CC0) y sql,
- * smalltalk, api, emailjs y tabler son propios.
+ * Devicon (licencia MIT), los de Cloudinary y Leaflet de Simple Icons (CC0) y sql,
+ * smalltalk, api, emailjs, tabler, lean, githubpages, pyodide, pdfjs, jszip, cssmodules y los de
+ * fundamentos son propios; WebAssembly es de Devicon.
  * `alias` permite reconocer nombres ya cargados con otra escritura
  * (por ejemplo "HTML 5", "Javascript" o "Node").
  */
@@ -37,7 +38,7 @@ export const TECNOLOGIAS = [
   { id: 'vercel', nombre: 'Vercel' },
   { id: 'eslint', nombre: 'ESLint' },
   { id: 'tabler', nombre: 'Tabler Icons', alias: ['tablericons', 'tablericonsreact'] },
-  { id: 'api', nombre: 'API REST', alias: ['api', 'rest', 'restapi'] },
+  { id: 'api', nombre: 'API REST', alias: ['api', 'rest', 'restapi', 'githubrestapi', 'githubapi'] },
   { id: 'junit', nombre: 'JUnit' },
   { id: 'pytest', nombre: 'pytest' },
   { id: 'postman', nombre: 'Postman' },
@@ -46,6 +47,13 @@ export const TECNOLOGIAS = [
   { id: 'smalltalk', nombre: 'Smalltalk' },
   { id: 'git', nombre: 'Git' },
   { id: 'github', nombre: 'GitHub' },
+  { id: 'githubpages', nombre: 'GitHub Pages', alias: ['ghpages'] },
+  { id: 'webassembly', nombre: 'WebAssembly', alias: ['wasm', 'webassemblyteavm', 'teavm'] },
+  { id: 'pyodide', nombre: 'Pyodide' },
+  { id: 'pdfjs', nombre: 'PDF.js', alias: ['pdfjsdist'] },
+  { id: 'jszip', nombre: 'JSZip' },
+  { id: 'leaflet', nombre: 'Leaflet', alias: ['leafletopenstreetmap', 'leafletjs', 'openstreetmap'] },
+  { id: 'cssmodules', nombre: 'CSS Modules', alias: ['cssmodule'] },
   { id: 'gitlab', nombre: 'GitLab' },
   { id: 'linux', nombre: 'Linux' },
   { id: 'windows', nombre: 'Windows' },
@@ -53,11 +61,17 @@ export const TECNOLOGIAS = [
   { id: 'trello', nombre: 'Trello' },
   { id: 'figma', nombre: 'Figma' },
   { id: 'vscode', nombre: 'VS Code', alias: ['visualstudiocode'] },
+  { id: 'lean', nombre: 'Lean' },
+  // Fundamentos (conceptos, con íconos propios)
+  { id: 'poo', nombre: 'POO', alias: ['programacionorientadaaobjetos', 'oop'] },
+  { id: 'algoritmos', nombre: 'Algoritmos y estructuras de datos', alias: ['algoritmosyestructurasdedatos', 'estructurasdedatos'] },
+  { id: 'testing', nombre: 'Testing y QA', alias: ['testingqa', 'qa', 'pruebasdesoftware'] },
+  { id: 'redes', nombre: 'Redes/CCNA', alias: ['redes', 'networking', 'ccna'] },
 ];
 
 export const iconoTecnologia = (id) => `/iconos/tecnologias/${id}.svg`;
 
-const normalizar = (texto) => (texto || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+export const normalizar = (texto) => (texto || '').toLowerCase().replace(/[^a-z0-9]/g, '');
 
 const coincide = (t, clave) =>
   normalizar(t.nombre) === clave || t.id === clave || (t.alias || []).includes(clave);

@@ -165,6 +165,10 @@ export default function Home({ data, cvUrl, onUpdate, onUpdateCV }) {
             </div>
           </div>
 
+          <p className={`claro-hero-texto max-w-xl text-lg leading-relaxed transition-colors duration-700 ${isDark ? 'text-slate-400' : 'text-slate-700'}`}>
+            {lang === 'ES' ? data?.description : data?.descriptionEN}
+          </p>
+
           {/* Ubicación e idiomas (si no se cargaron, se usan los del CV) */}
           <ul className="claro-datos flex flex-wrap items-center gap-x-5 gap-y-2">
             <li className="flex items-center gap-2">
@@ -178,10 +182,6 @@ export default function Home({ data, cvUrl, onUpdate, onUpdateCV }) {
                 : (data?.languagesEN || IDIOMAS_POR_DEFECTO.EN)}
             </li>
           </ul>
-
-          <p className={`claro-hero-texto max-w-xl text-lg leading-relaxed transition-colors duration-700 ${isDark ? 'text-slate-400' : 'text-slate-700'}`}>
-            {lang === 'ES' ? data?.description : data?.descriptionEN}
-          </p>
 
           <div className="claro-redes flex flex-wrap items-center justify-center md:justify-start gap-6 pt-4 md:pl-[100px]">
             {data?.whatsapp && (
