@@ -2029,9 +2029,33 @@ function Medio({ url, controles, nitida }) {
 }
 
 // Imagen ampliada a pantalla completa, con flechas, teclado y Esc para cerrar
+// Acercamiento con un clic sobre la imagen ampliada: poco, para leer detalles
+const ZOOM = 1.8;
+
 function Ampliada({ medios, indice, onCambiar, onCerrar, lang }) {
   const t = (es, en) => (lang === 'ES' ? es : en);
   const varias = medios.length > 1;
+  const actual = medios[indice];
+  const esImagen = !isVideo(actual);
+  // Imagen acercada y punto hacia donde se acerca (en %). Al cambiar de imagen
+  // vuelve sola al tamaño normal, porque el acercamiento es de la anterior.
+  const [acercada, setAcercada] = useState(null);
+  const [punto, setPunto] = useState({ x: 50, y: 50 });
+  const zoom = esImagen && acercada === actual;
+
+  const puntoDe = (e) => {
+    const caja = e.currentTarget.getBoundingClientRect();
+    return {
+      x: Math.min(100, Math.max(0, ((e.clientX - caja.left) / caja.width) * 100)),
+      y: Math.min(100, Math.max(0, ((e.clientY - caja.top) / caja.height) * 100)),
+    };
+  };
+  const alternarZoom = (e) => {
+    e.stopPropagation();
+    if (!esImagen) return;
+    setPunto(puntoDe(e));
+    setAcercada(zoom ? null : actual);
+  };
   const mover = useCallback((paso) => onCambiar((indice + paso + medios.length) % medios.length), [indice, medios.length, onCambiar]);
 
   useEffect(() => {
@@ -2054,8 +2078,15 @@ function Ampliada({ medios, indice, onCambiar, onCerrar, lang }) {
       <button type="button" className="scx-ampliada-cerrar" onClick={onCerrar} aria-label={t('Cerrar', 'Close')}>
         <IconX size={22} stroke={2} aria-hidden="true" />
       </button>
-      <div className="scx-ampliada-medio" key={medios[indice]} onClick={(e) => e.stopPropagation()}>
-        <Medio url={medios[indice]} controles />
+      <div
+        className={`scx-ampliada-medio ${esImagen ? 'imagen' : ''} ${zoom ? 'acercada' : ''}`}
+        key={actual}
+        style={{ '--zoom': ZOOM, '--zoom-x': `${punto.x}%`, '--zoom-y': `${punto.y}%` }}
+        onClick={alternarZoom}
+        onMouseMove={zoom ? (e) => setPunto(puntoDe(e)) : undefined}
+        title={esImagen ? (zoom ? t('Clic para alejar', 'Click to zoom out') : t('Clic para acercar', 'Click to zoom in')) : undefined}
+      >
+        <Medio url={actual} controles />
       </div>
       {varias && (
         <>
@@ -2065,9 +2096,13 @@ function Ampliada({ medios, indice, onCambiar, onCerrar, lang }) {
           <button type="button" className="scx-ampliada-flecha der" onClick={(e) => { e.stopPropagation(); mover(1); }} aria-label={t('Imagen siguiente', 'Next image')}>
             <IconChevronRight size={26} stroke={2} aria-hidden="true" />
           </button>
-          <p className="scx-ampliada-contador">{indice + 1} / {medios.length}</p>
         </>
       )}
+      <p className="scx-ampliada-contador">
+        {varias && `${indice + 1} / ${medios.length}`}
+        {varias && esImagen && ' · '}
+        {esImagen && (zoom ? t('clic para alejar', 'click to zoom out') : t('clic para acercar', 'click to zoom in'))}
+      </p>
     </div>,
     document.body
   );
