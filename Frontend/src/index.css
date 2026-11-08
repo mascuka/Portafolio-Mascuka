@@ -1013,10 +1013,6 @@ body:not(.light) .claro-btn-mas:hover {
 }
 
 /* Menú de celular */
-body:not(.light) .claro-menu-movil {
-  background: color-mix(in srgb, var(--tema-fondo) 97%, transparent);
-}
-
 /* El azul niebla es claro: el texto que va encima pasa a oscuro */
 body:not(.light) .bg-acento.text-white,
 body:not(.light) .text-white.hover\:bg-acento:hover,
@@ -1731,6 +1727,60 @@ body:not(.light) .hab-chip-icono.linea {
   }
 }
 
+/* Celular: cada habilidad con ícono queda solo como ícono, en una fila que se
+   desliza (carrusel). Las filas de solo texto siguen con su nombre. */
+@media (max-width: 640px) {
+  .hab-fila {
+    gap: 10px;
+    padding: 16px 0;
+  }
+
+  .hab-titulo {
+    font-size: 18px;
+  }
+
+  .hab-chip:not(.texto) {
+    position: relative;
+    width: 46px;
+    height: 46px;
+    justify-content: center;
+    padding: 0;
+  }
+
+  .hab-chip:not(.texto) .hab-chip-icono {
+    width: 24px;
+    height: 24px;
+  }
+
+  /* El nombre no se ve, pero lo siguen leyendo los lectores de pantalla */
+  .hab-chip:not(.texto) .hab-chip-nombre {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  /* Certificado: una marquita en la esquina del ícono */
+  .hab-chip:not(.texto) .hab-chip-certificado {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    width: 17px;
+    height: 17px;
+    padding: 1px;
+    border-radius: 50%;
+    background: var(--tema-superficie);
+  }
+
+  .hab-chip.texto {
+    height: 34px;
+    padding: 0 13px;
+    font-size: 13.5px;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .hab-chip {
     transition: border-color 180ms ease-out;
@@ -2421,6 +2471,28 @@ body:not(.light) .pry-puntos svg {
   transform: scale(1.2);
 }
 
+/* Arrastrar a los costados pasa de imagen: el gesto horizontal es nuestro y
+   el vertical sigue desplazando la página */
+.scx-galeria-marco.arrastrable,
+.scx-ampliada-medio {
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.scx-galeria-imagen {
+  transition: transform 220ms ease;
+}
+
+.scx-galeria-imagen.arrastrando {
+  transition: none;
+}
+
+.scx-galeria-imagen img,
+.scx-ampliada-medio img {
+  -webkit-user-drag: none;
+}
+
 /* Lupa: aparece al pasar el mouse para avisar que se puede ampliar */
 .scx-lupa {
   position: absolute;
@@ -2765,4 +2837,222 @@ body:not(.light) .pry-puntos svg {
   .scx-ampliada-medio.imagen img {
     transition: none;
   }
+}
+
+/* ============================================
+   CELULAR Y TABLET: ajustes generales
+   ============================================ */
+
+/* Nombre con la foto chica al costado (la foto grande se ve desde 1280px) */
+.claro-nombre-fila {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.claro-nombre-fila > h1 {
+  min-width: 0;
+}
+
+.claro-foto-movil {
+  flex-shrink: 0;
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: center 25%;
+  box-shadow:
+    0 0 0 3px var(--tema-fondo),
+    0 0 0 5px color-mix(in srgb, var(--tema-acento) 45%, transparent),
+    0 14px 28px -12px rgb(0 0 0 / 0.4);
+}
+
+@media (min-width: 768px) {
+  .claro-foto-movil {
+    width: 128px;
+    height: 128px;
+  }
+}
+
+/* Pie debajo de 1280px: frase y flecha en la misma fila (no apiladas) */
+@media (max-width: 1279px) {
+  body .claro-footer .claro-contenedor {
+    flex-direction: row;
+    gap: 14px;
+  }
+
+  body .claro-footer .claro-contenedor > div:last-child {
+    width: auto;
+    flex: none;
+  }
+}
+
+/* Barra del celular y tablet: arriba las 4 secciones a la vista, abajo (más
+   chico) admin, idioma y tema. Reemplaza al menú desplegable. */
+@media (max-width: 1023px) {
+  body .claro-nav-fila {
+    padding-block: 6px;
+  }
+}
+
+.nav-movil {
+  display: none;
+  flex-direction: column;
+  gap: 4px;
+}
+
+@media (max-width: 1023px) {
+  .nav-movil {
+    display: flex;
+  }
+}
+
+.nav-movil-links {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+  max-width: 560px;
+  width: 100%;
+  margin-inline: auto;
+}
+
+body .nav-movil-link {
+  position: relative;
+  padding: 7px 2px;
+  font-size: 14.5px;
+  white-space: nowrap;
+}
+
+body .nav-movil-link::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 2px;
+  width: 0;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--tema-acento);
+  transform: translateX(-50%);
+  transition: width 200ms ease;
+}
+
+body .nav-movil-link[aria-current="page"]::after {
+  width: 100%;
+}
+
+/* Admin, idioma y tema flotando arriba a la derecha del inicio (celular y
+   tablet). Van en el documento, así que se van con la página al bajar. */
+.controles-flotantes {
+  position: absolute;
+  top: 62px;
+  right: 16px;
+  z-index: 90;
+  display: none;
+  align-items: center;
+  gap: 8px;
+}
+
+@media (max-width: 1023px) {
+  .controles-flotantes {
+    display: flex;
+  }
+}
+
+.controles-flotantes .claro-idioma {
+  padding: 2px;
+  background: var(--tema-superficie);
+}
+
+.controles-flotantes .claro-idioma button {
+  padding: 3px 10px;
+}
+
+body .controles-flotantes .claro-tema {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--tema-superficie);
+}
+
+.controles-flotantes .claro-tema svg {
+  width: 14px;
+  height: 14px;
+}
+
+body .controles-flotantes .claro-salir {
+  padding: 4px 11px;
+  font-size: 10px;
+}
+
+.controles-flotantes .claro-salir svg {
+  width: 12px;
+  height: 12px;
+}
+
+@media (max-width: 360px) {
+  body .nav-movil-link {
+    font-size: 13.5px;
+  }
+}
+
+@media (max-width: 640px) {
+  /* Experiencia: títulos más chicos y tarjetas con más ancho para el texto */
+  body .claro-trabajo-titulo {
+    font-size: 18px;
+    line-height: 1.3;
+    letter-spacing: 0.01em;
+  }
+
+  body .claro-trabajo > .claro-card {
+    padding: 20px 18px;
+  }
+
+  body .claro-trabajo-desc {
+    font-size: 15px;
+  }
+
+  /* Rol del inicio en un renglón aun en celulares angostos */
+  body .claro-rol {
+    font-size: 13.5px;
+    letter-spacing: 0.12em;
+  }
+
+  /* La fecha como etiqueta, no como barra de todo el ancho */
+  body .claro-fecha {
+    align-self: flex-start;
+  }
+
+  /* Pie compacto: la frase chica en dos renglones y solo la flecha para subir */
+  body .claro-footer {
+    padding-block: 12px;
+  }
+
+  body .claro-footer-frase {
+    flex-direction: column;
+    gap: 2px;
+    font-size: 9.5px !important;
+    line-height: 1.45;
+    text-align: center;
+    white-space: normal;
+  }
+
+  body .claro-footer-code {
+    display: none;
+  }
+
+  body .claro-footer-volver {
+    display: none;
+  }
+
+  body .claro-footer-arriba {
+    width: 34px;
+    height: 34px;
+  }
+
+  /* Proyectos: miniaturas a todo el ancho y flechas centradas debajo */
+  .scx-controles {
+    justify-content: center;
+  }
+
 }

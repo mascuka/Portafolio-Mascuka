@@ -154,9 +154,19 @@ export default function Home({ data, cvUrl, onUpdate, onUpdateCV }) {
         <div className="claro-hero-col flex-1 z-10 text-center md:text-left space-y-8 flex flex-col items-center md:items-start">
           <div className="space-y-4">
             {/* Título: reducido en xl cuando aparece la imagen, vuelve a crecer en 2xl */}
-            <h1 className={`text-5xl md:text-7xl lg:text-[110px] xl:text-8xl 2xl:text-[110px] claro-hero-titulo font-black tracking-tighter whitespace-nowrap leading-none transition-all duration-700 ${isDark ? 'text-white' : 'text-slate-900'}`}>
-              {lang === 'ES' ? data?.title : data?.titleEN}
-            </h1>
+            {/* En celular y tablet la foto va chica al costado del nombre (la grande aparece desde xl) */}
+            <div className="claro-nombre-fila">
+              <h1 className={`text-5xl md:text-7xl lg:text-[110px] xl:text-8xl 2xl:text-[110px] claro-hero-titulo font-black tracking-tighter whitespace-nowrap leading-none transition-all duration-700 ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                {lang === 'ES' ? data?.title : data?.titleEN}
+              </h1>
+              {(data?.image || data?.imageLight) && (
+                <img
+                  src={isDark ? data?.image : (data?.imageLight || data?.image)}
+                  alt={lang === 'ES' ? 'Foto de perfil' : 'Profile photo'}
+                  className="claro-foto-movil xl:hidden"
+                />
+              )}
+            </div>
             <div className="relative inline-block">
               <h2 className={`claro-rol text-2xl md:text-3xl font-bold tracking-[0.3em] uppercase ${isDark ? 'text-acento-light' : 'text-acento'}`}>
                 {lang === 'ES' ? data?.subtitle : data?.subtitleEN}

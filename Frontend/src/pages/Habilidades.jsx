@@ -881,7 +881,7 @@ export default function Habilidades({ data, onUpdate }) {
                               />
                             );
                           })()}
-                          <span>{skill.name}</span>
+                          <span className="hab-chip-nombre">{skill.name}</span>
                           {skill.hasCertificate && (
                             <IconRosetteDiscountCheck size={15} stroke={1.75} className="hab-chip-certificado" aria-label={lang === 'ES' ? 'con certificado' : 'certified'} />
                           )}
@@ -912,7 +912,7 @@ export default function Habilidades({ data, onUpdate }) {
                               {contenido}
                             </button>
                           ) : (
-                            <span className={`hab-chip ${soloTexto ? 'texto' : ''}`}>{contenido}</span>
+                            <span className={`hab-chip ${soloTexto ? 'texto' : ''}`} title={skill.name}>{contenido}</span>
                           )}
                           {isAdmin && (
                             <button

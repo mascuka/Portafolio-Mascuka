@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { auth, googleProvider } from "../lib/firebase";
 import { signOut, signInWithPopup, signInWithRedirect, signInWithCredential, GoogleAuthProvider, getRedirectResult } from "firebase/auth";
 import { useApp } from '../context/useApp';
@@ -37,7 +38,6 @@ const navLinks = [
 export default function Navbar() {
   const { isDark, setIsDark, lang, setLang, isAdminDetected, user, loading } = useApp();
   const [showAdminFallback, setShowAdminFallback] = useState(false);
-  const [isOpen, setIsOpen] = useState(false);
   const [activeSection, setActiveSection] = useState('Home');
   const [scrolled, setScrolled] = useState(false);
 
@@ -149,7 +149,6 @@ export default function Navbar() {
     if (element) {
       window.scrollTo({ top: element.offsetTop - 30, behavior: 'smooth' });
       setActiveSection(id);
-      setIsOpen(false);
     }
   };
 
@@ -246,7 +245,65 @@ export default function Navbar() {
     return null;
   };
 
+  // Idioma y tema: los mismos botones en la barra de escritorio y en la del celular
+  const selectorIdioma = (
+    <div className={`
+      claro-idioma flex p-1 rounded-full border text-[9px] font-black
+      ${isDark ? 'bg-white/5 border-white/10' : 'bg-slate-100 border-slate-200'}
+    `}>
+      <button 
+        onClick={() => setLang('ES')} aria-pressed={lang === 'ES'} 
+        className={`
+          px-3 py-1 rounded-full transition-all
+          ${lang === 'ES' 
+            ? (isDark ? 'bg-white/10 text-white' : 'bg-[var(--color-light-bg-secondary)] text-acento shadow-sm') 
+            : 'text-slate-500'
+          }
+        `}
+      >
+        ES
+      </button>
+      <button 
+        onClick={() => setLang('EN')} aria-pressed={lang === 'EN'} 
+        className={`
+          px-3 py-1 rounded-full transition-all
+          ${lang === 'EN' 
+            ? (isDark ? 'bg-white/10 text-white' : 'bg-[var(--color-light-bg-secondary)] text-acento shadow-sm') 
+            : 'text-slate-500'
+          }
+        `}
+      >
+        EN
+      </button>
+    </div>
+  );
+
+  const botonTema = (
+    <button 
+      onClick={() => setIsDark(!isDark)} 
+      className={`
+        relative claro-tema w-10 h-10 flex items-center justify-center rounded-xl 
+        transition-all duration-300 border
+        ${isDark 
+          ? 'bg-[#111827] border-white/5 text-slate-400 hover:border-white/20' 
+          : 'bg-[var(--color-light-bg-secondary)] border-slate-200 text-yellow-500 hover:border-yellow-400/30'
+        }
+      `}
+    >
+      {isDark ? (
+        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+          <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
+        </svg>
+      ) : (
+        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+          <path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" />
+        </svg>
+      )}
+    </button>
+  );
+
   return (
+    <>
     <nav className={`
       claro-nav fixed top-0 left-0 right-0 z-[100] backdrop-blur-xl border-b transition-all duration-700
       ${scrolled ? 'shadow-lg' : ''}
@@ -256,7 +313,7 @@ export default function Navbar() {
       }
     `}>
       <div className="claro-contenedor claro-nav-fila max-w-[1800px] mx-auto px-6 md:px-12 py-4">
-        <div className="flex items-center justify-between">
+        <div className="hidden lg:flex items-center justify-between">
           
           {/* Logo / Botón Admin */}
           <div className="flex items-center gap-6">
@@ -293,154 +350,45 @@ export default function Navbar() {
               ))}
             </ul>
 
-            {/* Mobile Menu Button */}
-            <button
-              onClick={() => setIsOpen(!isOpen)}
-              className={`
-                lg:hidden p-2 rounded-lg transition-colors
-                ${isDark ? 'hover:bg-white/5 text-white' : 'hover:bg-slate-100 text-slate-900'}
-              `}
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                {isOpen ? (
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                ) : (
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                )}
-              </svg>
-            </button>
-
             {/* Desktop Controls */}
             <div className="claro-controles hidden lg:flex items-center gap-6 border-l pl-6 border-white/10">
               
-              {/* Language Selector */}
-              <div className={`
-                claro-idioma flex p-1 rounded-full border text-[9px] font-black
-                ${isDark ? 'bg-white/5 border-white/10' : 'bg-slate-100 border-slate-200'}
-              `}>
-                <button 
-                  onClick={() => setLang('ES')} aria-pressed={lang === 'ES'} 
-                  className={`
-                    px-3 py-1 rounded-full transition-all
-                    ${lang === 'ES' 
-                      ? (isDark ? 'bg-white/10 text-white' : 'bg-[var(--color-light-bg-secondary)] text-acento shadow-sm') 
-                      : 'text-slate-500'
-                    }
-                  `}
-                >
-                  ES
-                </button>
-                <button 
-                  onClick={() => setLang('EN')} aria-pressed={lang === 'EN'} 
-                  className={`
-                    px-3 py-1 rounded-full transition-all
-                    ${lang === 'EN' 
-                      ? (isDark ? 'bg-white/10 text-white' : 'bg-[var(--color-light-bg-secondary)] text-acento shadow-sm') 
-                      : 'text-slate-500'
-                    }
-                  `}
-                >
-                  EN
-                </button>
-              </div>
-
-              {/* Theme Toggle */}
-              <button 
-                onClick={() => setIsDark(!isDark)} 
-                className={`
-                  relative claro-tema w-10 h-10 flex items-center justify-center rounded-xl 
-                  transition-all duration-300 border
-                  ${isDark 
-                    ? 'bg-[#111827] border-white/5 text-slate-400 hover:border-white/20' 
-                    : 'bg-[var(--color-light-bg-secondary)] border-slate-200 text-yellow-500 hover:border-yellow-400/30'
-                  }
-                `}
-              >
-                {isDark ? (
-                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
-                  </svg>
-                ) : (
-                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" />
-                  </svg>
-                )}
-              </button>
+              {selectorIdioma}
+              {botonTema}
             </div>
           </div>
         </div>
 
-        {/* Mobile Menu */}
-        {isOpen && (
-          <div className={`claro-menu-movil lg:hidden absolute top-full left-0 w-full ${
-            isDark ? 'bg-[#0A0F1A]/95 backdrop-blur-xl' : 'bg-[var(--color-light-bg-secondary)]/95 backdrop-blur-xl'
-          }`}>
-            <div className="px-6 py-4 space-y-4">
-              {navLinks.map((link) => (
+        {/* Celular y tablet: una sola fila con las secciones */}
+        <div className="nav-movil lg:hidden">
+          <ul className="nav-movil-links">
+            {navLinks.map((link) => (
+              <li key={link.id}>
                 <button
-                  key={link.id}
-                  onClick={() => handleNavClick(link.id)} aria-current={activeSection === link.id ? 'page' : undefined}
-                  className={`claro-nav-link block w-full text-left py-2 text-sm font-bold tracking-wider transition-colors ${
-                    activeSection === link.id
-                      ? (isDark ? 'text-white' : 'text-slate-900')
-                      : (isDark ? 'text-white/40' : 'text-slate-400')
-                  }`}
+                  type="button"
+                  onClick={() => handleNavClick(link.id)}
+                  aria-current={activeSection === link.id ? 'page' : undefined}
+                  className="claro-nav-link nav-movil-link"
                 >
                   {lang === 'ES' ? link.name : link.nameEN}
                 </button>
-              ))}
-              
-              <div className="pt-4 border-t border-white/10 flex items-center justify-between">
-                <div className={`claro-idioma flex p-1 rounded-full border text-[9px] font-black ${
-                  isDark ? 'bg-white/5 border-white/10' : 'bg-slate-100 border-slate-200'
-                }`}>
-                  <button 
-                    onClick={() => setLang('ES')} aria-pressed={lang === 'ES'} 
-                    className={`px-3 py-1 rounded-full transition-all ${
-                      lang === 'ES' 
-                        ? (isDark ? 'bg-white/10 text-white' : 'bg-[var(--color-light-bg-secondary)] text-acento shadow-sm') 
-                        : 'text-slate-500'
-                    }`}
-                  >
-                    ES
-                  </button>
-                  <button 
-                    onClick={() => setLang('EN')} aria-pressed={lang === 'EN'} 
-                    className={`px-3 py-1 rounded-full transition-all ${
-                      lang === 'EN' 
-                        ? (isDark ? 'bg-white/10 text-white' : 'bg-[var(--color-light-bg-secondary)] text-acento shadow-sm') 
-                        : 'text-slate-500'
-                    }`}
-                  >
-                    EN
-                  </button>
-                </div>
-
-                <button 
-                  onClick={() => setIsDark(!isDark)} 
-                  className={`claro-tema w-10 h-10 flex items-center justify-center rounded-xl transition-all duration-300 border ${
-                    isDark 
-                      ? 'bg-[#111827] border-white/5 text-slate-400' 
-                      : 'bg-[var(--color-light-bg-secondary)] border-slate-200 text-yellow-500'
-                  }`}
-                >
-                  {isDark ? (
-                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
-                    </svg>
-                  ) : (
-                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" />
-                    </svg>
-                  )}
-                </button>
-              </div>
-              
-              {renderAdminButton()}
-            </div>
-          </div>
-        )}
+              </li>
+            ))}
+          </ul>
+        </div>
       </div>
     </nav>
+
+    {/* Celular y tablet: admin, idioma y tema flotando arriba a la derecha del
+        inicio (se van con la página al bajar) */}
+    {createPortal(
+      <div className="controles-flotantes lg:hidden">
+        {renderAdminButton()}
+        {selectorIdioma}
+        {botonTema}
+      </div>,
+      document.body
+    )}
+    </>
   );
 }

@@ -2032,6 +2032,64 @@ function Medio({ url, controles, nitida }) {
 // Acercamiento con un clic sobre la imagen ampliada: poco, para leer detalles
 const ZOOM = 1.8;
 
+// Arrastrar a los costados para pasar de imagen: con el dedo o con el mouse.
+// La imagen sigue al arrastre; si se suelta pasado cierto punto, cambia. Un
+// arrastre no cuenta como clic (no abre ni acerca la imagen).
+const UMBRAL_ARRASTRE = 50;
+
+function useArrastre(alPasar, activo) {
+  const inicio = useRef(null);
+  const arrastrando = useRef(false);
+  const [desplazamiento, setDesplazamiento] = useState(0);
+
+  if (!activo) return { manejadores: {}, desplazamiento: 0 };
+
+  const terminar = (e, cancelado) => {
+    const datos = inicio.current;
+    inicio.current = null;
+    setDesplazamiento(0);
+    // El clic que llega justo después del arrastre se ignora; los siguientes no
+    setTimeout(() => { arrastrando.current = false; }, 0);
+    if (!datos || cancelado || !arrastrando.current) return;
+    const dx = e.clientX - datos.x;
+    if (Math.abs(dx) > UMBRAL_ARRASTRE) alPasar(dx < 0 ? 1 : -1);
+  };
+
+  return {
+    desplazamiento,
+    manejadores: {
+      onPointerDown: (e) => {
+        if (e.pointerType === 'mouse' && e.button !== 0) return;
+        inicio.current = { x: e.clientX, y: e.clientY };
+        arrastrando.current = false;
+      },
+      onPointerMove: (e) => {
+        const datos = inicio.current;
+        if (!datos) return;
+        const dx = e.clientX - datos.x;
+        const dy = e.clientY - datos.y;
+        if (!arrastrando.current) {
+          if (Math.abs(dy) > 10 && Math.abs(dy) > Math.abs(dx)) { inicio.current = null; return; }
+          if (Math.abs(dx) < 8) return;
+          arrastrando.current = true;
+          try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* sin captura igual funciona */ }
+        }
+        setDesplazamiento(dx);
+      },
+      onPointerUp: (e) => terminar(e, false),
+      onPointerCancel: (e) => terminar(e, true),
+      onClickCapture: (e) => {
+        if (arrastrando.current) {
+          e.preventDefault();
+          e.stopPropagation();
+          arrastrando.current = false;
+        }
+      },
+      onDragStart: (e) => e.preventDefault(),
+    },
+  };
+}
+
 function Ampliada({ medios, indice, onCambiar, onCerrar, lang }) {
   const t = (es, en) => (lang === 'ES' ? es : en);
   const varias = medios.length > 1;
@@ -2057,6 +2115,7 @@ function Ampliada({ medios, indice, onCambiar, onCerrar, lang }) {
     setAcercada(zoom ? null : actual);
   };
   const mover = useCallback((paso) => onCambiar((indice + paso + medios.length) % medios.length), [indice, medios.length, onCambiar]);
+  const arrastre = useArrastre(mover, varias && !zoom);
 
   useEffect(() => {
     const tecla = (e) => {
@@ -2081,9 +2140,13 @@ function Ampliada({ medios, indice, onCambiar, onCerrar, lang }) {
       <div
         className={`scx-ampliada-medio ${esImagen ? 'imagen' : ''} ${zoom ? 'acercada' : ''}`}
         key={actual}
-        style={{ '--zoom': ZOOM, '--zoom-x': `${punto.x}%`, '--zoom-y': `${punto.y}%` }}
+        style={{
+          '--zoom': ZOOM, '--zoom-x': `${punto.x}%`, '--zoom-y': `${punto.y}%`,
+          transform: arrastre.desplazamiento ? `translateX(${arrastre.desplazamiento}px)` : undefined,
+        }}
         onClick={alternarZoom}
         onMouseMove={zoom ? (e) => setPunto(puntoDe(e)) : undefined}
+        {...arrastre.manejadores}
         title={esImagen ? (zoom ? t('Clic para alejar', 'Click to zoom out') : t('Clic para acercar', 'Click to zoom in')) : undefined}
       >
         <Medio url={actual} controles />
@@ -2116,6 +2179,7 @@ function Galeria({ project, lang }) {
   const t = (es, en) => (lang === 'ES' ? es : en);
   const varias = medios.length > 1;
   const mover = (paso) => setIndice(i => (i + paso + medios.length) % medios.length);
+  const arrastre = useArrastre(mover, varias);
 
   // Precarga la anterior y la siguiente (en el mismo tamaño) para que el cambio sea instantáneo
   const claveMedios = medios.join('|');
@@ -2135,11 +2199,12 @@ function Galeria({ project, lang }) {
 
   return (
     <div className="scx-galeria">
-      <div className="scx-galeria-marco">
+      <div className={`scx-galeria-marco ${varias ? 'arrastrable' : ''}`} {...arrastre.manejadores}>
         <button
           type="button"
-          className="scx-galeria-imagen"
+          className={`scx-galeria-imagen ${arrastre.desplazamiento ? 'arrastrando' : ''}`}
           key={medios[indice]}
+          style={arrastre.desplazamiento ? { transform: `translateX(${arrastre.desplazamiento}px)` } : undefined}
           onClick={() => setAmpliada(true)}
           aria-label={t('Ampliar imagen', 'Enlarge image')}
           title={t('Ampliar', 'Enlarge')}
