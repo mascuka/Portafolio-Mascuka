@@ -37,7 +37,11 @@ const navLinks = [
  */
 export default function Navbar() {
   const { isDark, setIsDark, lang, setLang, isAdminDetected, user, loading } = useApp();
-  const [showAdminFallback, setShowAdminFallback] = useState(false);
+  // Entrada fija para el admin: abrir el sitio con ?admin muestra el botón de login
+  // (One Tap de Google ya no avisa siempre cuando no se muestra)
+  const [showAdminFallback, setShowAdminFallback] = useState(
+    () => new URLSearchParams(window.location.search).has('admin')
+  );
   const [activeSection, setActiveSection] = useState('Home');
   const [scrolled, setScrolled] = useState(false);
 
