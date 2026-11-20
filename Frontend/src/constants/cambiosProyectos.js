@@ -12,6 +12,7 @@ import { TECNOLOGIAS, buscarTecnologia, iconoTecnologia } from './tecnologias';
  *   completan si el proyecto todavía no los tiene (lo que se edite desde el
  *   panel no se pisa).
  * - Nombres de tecnologías mal escritos (RENOMBRAR) y el subtítulo de la sección.
+ * - Proyectos nuevos (NUEVOS), con su portada ya subida a Cloudinary.
  * Es idempotente: si ya está todo, devuelve null y el botón del panel de admin
  * desaparece.
  */
@@ -74,6 +75,47 @@ const PENDIENTES = [
       tipo: 'colaborativo',
       resumen: 'Apoyo emocional y contacto con psicólogos.',
       resumenEN: 'Emotional support and contact with psychologists.',
+    },
+  },
+];
+
+/**
+ * PROYECTOS NUEVOS
+ * Se agregan una sola vez, al final de la fila 1; si ya existe uno con ese título
+ * no se toca (lo que se edite desde el panel manda).
+ */
+const PORTADA_BIBLIOTECAS = 'https://res.cloudinary.com/driyx3op7/image/upload/v1795137878/portfolio/projects/fpbk0ftpyzwqcv2ylijz.png';
+const NUEVOS = [
+  {
+    titulo: /biblioteca|interbibliotecari/i,
+    tecnologias: [
+      ['react', 'React 18'], 'vite', 'reactrouter', ['tanstackquery', 'TanStack Query'], 'reacthookform', 'zod',
+      'cssmodules', ['jwt', 'JWT'], ['api', 'API REST propia'], 'vercel',
+    ],
+    datos: {
+      id: '1795137878000',
+      title: 'Red de Bibliotecas Públicas',
+      titleEN: 'Public Library Network',
+      description: 'Sistema de préstamos interbibliotecarios para una red de bibliotecas públicas. Los lectores consultan el catálogo de todas las sedes, piden cualquier libro y lo retiran en la sede que les quede más cerca. Reúne reservas, préstamos y el ranking de los títulos más pedidos de la red.',
+      descriptionEN: 'Interlibrary loan system for a network of public libraries. Readers browse the catalog of every branch, request any book and pick it up at the branch closest to them. It brings together reservations, loans and a ranking of the most requested titles in the network.',
+      demo: 'https://sistema-prestamos-interbibliotecari.vercel.app/',
+      repo: '',
+      images: [PORTADA_BIBLIOTECAS],
+      imagePublicIds: ['portfolio/projects/fpbk0ftpyzwqcv2ylijz'],
+      image: PORTADA_BIBLIOTECAS,
+      imagePublicId: 'portfolio/projects/fpbk0ftpyzwqcv2ylijz',
+      row: '1',
+      tipo: 'academico',
+      estado: 'produccion',
+      destacado: false,
+      resumen: 'Préstamos de libros entre las sedes de una red de bibliotecas.',
+      resumenEN: 'Book loans between the branches of a library network.',
+      intro: 'Sistema de préstamos interbibliotecarios para una red de bibliotecas públicas.',
+      introEN: 'Interlibrary loan system for a network of public libraries.',
+      puntos: ['Catálogo de todas las sedes', 'Reservas y préstamos', 'Retiro en la sede que elija'],
+      puntosEN: ['Catalog of every branch', 'Reservations and loans', 'Pick-up at the branch of your choice'],
+      color: '#3E8E8A',
+      capturaLaptop: '',
     },
   },
 ];
@@ -143,6 +185,20 @@ export function calcularCambiosProyectos(lista, encabezado = {}) {
       for (const p of proyectos) p.destacado = p === proyecto;
       resumen.push(`${proyecto.title}: proyecto destacado`);
     }
+  }
+
+  for (const nuevo of NUEVOS) {
+    if (proyectos.some(p => nuevo.titulo.test(p.title || ''))) continue;
+    const enFila = proyectos.filter(p => String(p.row || 1) === String(nuevo.datos.row));
+    const ultimo = Math.max(0, ...enFila.map(p => parseInt(p.order, 10)).filter(n => !Number.isNaN(n)));
+    const tecnologias = nuevo.tecnologias.map(item => (Array.isArray(item) ? item : [item]));
+    proyectos.push({
+      ...nuevo.datos,
+      order: ultimo + 1,
+      technologies: tecnologias.map(([id]) => iconoTecnologia(id)),
+      technologyNames: tecnologias.map(([id, nombre]) => nombre || TECNOLOGIAS.find(t => t.id === id).nombre),
+    });
+    resumen.push(`Agregar el proyecto "${nuevo.datos.title}" (posición ${ultimo + 1})`);
   }
 
   for (const proyecto of proyectos) {

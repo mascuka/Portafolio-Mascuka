@@ -3,7 +3,8 @@
  * Los archivos viven en public/iconos/tecnologias/<id>.svg: los logos son de
  * Devicon (licencia MIT), los de Cloudinary y Leaflet de Simple Icons (CC0) y sql,
  * smalltalk, api, emailjs, tabler, lean, githubpages, pyodide, pdfjs, jszip, cssmodules y los de
- * fundamentos son propios; WebAssembly es de Devicon.
+ * fundamentos son propios; WebAssembly es de Devicon; React Router, TanStack Query,
+ * React Hook Form, Zod y JWT de Simple Icons (CC0), con el color de cada marca.
  * `alias` permite reconocer nombres ya cargados con otra escritura
  * (por ejemplo "HTML 5", "Javascript" o "Node").
  */
@@ -54,6 +55,11 @@ export const TECNOLOGIAS = [
   { id: 'jszip', nombre: 'JSZip' },
   { id: 'leaflet', nombre: 'Leaflet', alias: ['leafletopenstreetmap', 'leafletjs', 'openstreetmap'] },
   { id: 'cssmodules', nombre: 'CSS Modules', alias: ['cssmodule'] },
+  { id: 'reactrouter', nombre: 'React Router', alias: ['reactrouterdom'] },
+  { id: 'tanstackquery', nombre: 'TanStack Query', alias: ['reactquery', 'tanstack', 'tanstackqueryreactquery'] },
+  { id: 'reacthookform', nombre: 'React Hook Form' },
+  { id: 'zod', nombre: 'Zod' },
+  { id: 'jwt', nombre: 'JWT', alias: ['jsonwebtoken', 'jsonwebtokens', 'jwtjsonwebtokens'] },
   { id: 'gitlab', nombre: 'GitLab' },
   { id: 'linux', nombre: 'Linux' },
   { id: 'windows', nombre: 'Windows' },
